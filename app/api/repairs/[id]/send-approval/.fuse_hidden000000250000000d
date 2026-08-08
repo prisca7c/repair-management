@@ -1,0 +1,105 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient as createClient } from "@/lib/supabase/admin";
+import { generateApprovalToken } from "@/lib/tokens";
+import { sendApprovalEmail } from "@/lib/sender";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Sends (or re-sends) an approval email for the CURRENT (latest) quote
+ * version. If that version already has a pending quote_approvals row, we
+ * reuse it but issue a fresh token (old links stop working). If the latest
+ * version was already approved/declined, this creates a new pending
+ * quote_approvals row for that same version.
+ */
+export async function POST(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: appUser } = await supabase.from("users").select("*").eq("id", user.id).maybeSingle();
+
+  const { data: repair } = await supabase
+    .from("repairs")
+    .select("*, customers(*)")
+    .eq("id", id)
+    .single();
+
+  if (!repair) return NextResponse.json({ error: "Repair not found" }, { status: 404 });
+
+  const { data: latestVersion } = await supabase
+    .from("quote_versions")
+    .select("*")
+    .eq("repair_id", id)
+    .order("version_number", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!latestVersion) {
+    return NextResponse.json({ error: "No quote version exists yet" }, { status: 400 });
+  }
+
+  const { token, tokenHash, expiresAt } = generateApprovalToken();
+
+  const { data: existingApproval } = await supabase
+    .from("quote_approvals")
+    .select("*")
+    .eq("quote_version_id", latestVersion.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingApproval && existingApproval.response === "pending") {
+    await supabase
+      .from("quote_approvals")
+      .update({ token_hash: tokenHash, token_expires_at: expiresAt })
+      .eq("id", existingApproval.id);
+  } else {
+    await supabase.from("quote_approvals").insert({
+      quote_version_id: latestVersion.id,
+      repair_id: id,
+      token_hash: tokenHash,
+      token_expires_at: expiresAt,
+      response: "pending",
+    });
+  }
+
+  await supabase
+    .from("quote_versions")
+    .update({ sent_at: new Date().toISOString() })
+    .eq("id", latestVersion.id);
+
+  const customer = repair.customers as { email: string | null; first_name: string; last_name: string } | null;
+  let warning: string | null = null;
+
+  if (customer?.email) {
+    const result = await sendApprovalEmail(supabase, {
+      repairId: id,
+      repairNumber: repair.repair_number,
+      customerEmail: customer.email,
+      customerName: `${customer.first_name} ${customer.last_name}`,
+      workDescription: repair.work_description || "",
+      total: repair.quote_total,
+      token,
+    });
+    warning = result.warning ?? null;
+  } else {
+    warning = "Customer has no email on file — approval email was not sent.";
+  }
+
+  await supabase.from("audit_log").insert({
+    repair_id: id,
+    actor_id: appUser?.id ?? null,
+    actor_name: appUser?.name ?? null,
+    action: "approval_sent",
+    to_value: { quote_version_id: latestVersion.id },
+  });
+
+  return NextResponse.json({ ok: true, warning });
+}

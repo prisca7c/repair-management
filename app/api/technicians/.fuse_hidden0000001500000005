@@ -1,0 +1,33 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient as createClient } from "@/lib/supabase/admin";
+import { getCurrentUser } from "@/lib/currentUser";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("technicians").select("*").order("name");
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ technicians: data });
+}
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json();
+  const { name, email, phone, notes } = body;
+  if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 });
+
+  const { data, error } = await supabase
+    .from("technicians")
+    .insert({ name, email: email || null, phone: phone || null, notes: notes || null })
+    .select("*")
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ technician: data });
+}

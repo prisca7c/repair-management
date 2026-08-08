@@ -1,0 +1,73 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient as createClient } from "@/lib/supabase/admin";
+import { getCurrentUser } from "@/lib/currentUser";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * "Paid & Collected" — records a payment, sets customer_paid, collected_at,
+ * status=collected. Undoable via the generic undo endpoint (action "collect").
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: appUser } = await supabase.from("users").select("*").eq("id", user.id).maybeSingle();
+
+  const body = await req.json().catch(() => ({}));
+  const method = (body.method as string) || "card";
+  const amount = body.amount as number | undefined;
+
+  const { data: before } = await supabase.from("repairs").select("*").eq("id", id).single();
+  if (!before) return NextResponse.json({ error: "Repair not found" }, { status: 404 });
+
+  const collectedAt = new Date().toISOString();
+
+  const { data: after, error } = await supabase
+    .from("repairs")
+    .update({
+      status: "collected",
+      customer_paid: true,
+      job_done: true,
+      collected_at: collectedAt,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  await supabase.from("payments").insert({
+    repair_id: id,
+    amount_due: before.quote_total,
+    amount_paid: amount ?? before.quote_total,
+    method,
+    paid_at: collectedAt,
+    staff_id: appUser?.id ?? null,
+  });
+
+  await supabase.from("audit_log").insert({
+    repair_id: id,
+    actor_id: appUser?.id ?? null,
+    actor_name: appUser?.name ?? null,
+    action: "collect",
+    from_value: {
+      status: before.status,
+      customer_paid: before.customer_paid,
+      collected_at: before.collected_at,
+    },
+    to_value: {
+      status: after?.status,
+      customer_paid: after?.customer_paid,
+      collected_at: after?.collected_at,
+    },
+  });
+
+  return NextResponse.json({ ok: true, repair: after, undoUrl: `/api/repairs/${id}/undo` });
+}
