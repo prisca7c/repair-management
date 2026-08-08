@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { STAFF_COOKIE_NAME } from "@/lib/currentUser";
+import { STAFF_COOKIE_NAME } from "@/lib/staffCookie";
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 

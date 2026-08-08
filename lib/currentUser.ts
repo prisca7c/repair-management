@@ -1,8 +1,7 @@
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AppUser } from "@/lib/database.types";
-
-export const STAFF_COOKIE_NAME = "staff_id";
+import { STAFF_COOKIE_NAME } from "@/lib/staffCookie";
 
 /**
  * Returns the currently "picked" staff user's app-level profile

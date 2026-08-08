@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { STAFF_COOKIE_NAME } from "@/lib/currentUser";
+import { STAFF_COOKIE_NAME } from "@/lib/staffCookie";
 
 // No Supabase Auth here — this shop runs on a single shared computer with
 // no passwords. The middleware only checks whether *someone* has been
