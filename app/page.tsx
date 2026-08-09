@@ -15,6 +15,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function instrumentLabel(r: { instrument_description: string | null; brand: string | null; model: string | null }) {
+  return r.instrument_description || [r.brand, r.model].filter(Boolean).join(" ") || "-";
+}
+
 interface SearchParams {
   q?: string;
   status?: string;
@@ -30,9 +34,7 @@ export default async function DashboardPage({
 
   const { data: repairs } = await supabase
     .from("repairs")
-    .select(
-      "*, customers(first_name, last_name, email, phone), technicians(name)"
-    )
+    .select("*, customers(first_name, last_name, email, phone)")
     .is("archived_at", null)
     .order("created_at", { ascending: false });
 
@@ -121,7 +123,7 @@ export default async function DashboardPage({
                 <li key={r.id} className="flex items-center justify-between py-1.5">
                   <Link href={`/repairs/${r.id}`} className="text-slate-700 hover:underline">
                     {r.repair_number} — {c ? customerFullName(c) : "Unknown"} —{" "}
-                    {r.brand} {r.model}
+                    {instrumentLabel(r)}
                   </Link>
                   <span className="text-xs text-slate-500">
                     {LOCATION_LABELS[r.location_type]}
@@ -180,7 +182,6 @@ export default async function DashboardPage({
               <Th>
                 Location <InfoIcon text="Where the instrument physically is right now." />
               </Th>
-              <Th>Technician</Th>
               <Th>
                 Tech £ <InfoIcon text="What we owe the external technician for this job." />
               </Th>
@@ -190,7 +191,6 @@ export default async function DashboardPage({
           <tbody className="divide-y divide-slate-100">
             {filtered.map((r) => {
               const c = r.customers as { first_name: string; last_name: string } | null;
-              const t = r.technicians as { name: string } | null;
               const approval = approvalsByRepair[r.id]?.response ?? "pending";
               return (
                 <tr key={r.id} className="hover:bg-slate-50">
@@ -201,9 +201,7 @@ export default async function DashboardPage({
                   </Td>
                   <Td>{formatDate(r.received_at)}</Td>
                   <Td>{c ? customerFullName(c) : "-"}</Td>
-                  <Td>
-                    {r.brand} {r.model}
-                  </Td>
+                  <Td>{instrumentLabel(r)}</Td>
                   <Td className="max-w-[200px] truncate">{r.work_description}</Td>
                   <Td>{formatMoney(r.quote_total)}</Td>
                   <Td>
@@ -212,15 +210,14 @@ export default async function DashboardPage({
                   <Td>{r.job_done ? "Yes" : "No"}</Td>
                   <Td>{r.customer_paid ? "Yes" : "No"}</Td>
                   <Td>{LOCATION_LABELS[r.location_type]}</Td>
-                  <Td>{t?.name ?? "-"}</Td>
-                  <Td>{r.technician_pay ? formatMoney(r.technician_pay) : "-"}</Td>
-                  <Td>{r.technician_id ? (r.technician_paid ? "Yes" : "No") : "-"}</Td>
+                  <Td>{r.technician_required ? formatMoney(r.technician_pay ?? 0) : "-"}</Td>
+                  <Td>{r.technician_required ? (r.technician_paid ? "Yes" : "No") : "-"}</Td>
                 </tr>
               );
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={13} className="px-3 py-6 text-center text-sm text-slate-400">
+                <td colSpan={12} className="px-3 py-6 text-center text-sm text-slate-400">
                   No repairs match.
                 </td>
               </tr>
@@ -244,7 +241,7 @@ export default async function DashboardPage({
                   <Pill label={STATUS_LABELS[r.status]} className={STATUS_COLORS[r.status]} />
                 </div>
                 <div className="mt-1 text-sm text-slate-600">
-                  {c ? customerFullName(c) : "-"} — {r.brand} {r.model}
+                  {c ? customerFullName(c) : "-"} — {instrumentLabel(r)}
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
                   <span>{formatMoney(r.quote_total)}</span>

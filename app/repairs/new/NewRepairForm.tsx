@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import type { Service, Technician, Customer } from "@/lib/database.types";
+import type { Service, Customer } from "@/lib/database.types";
 
 interface LineItem {
   service_id?: string | null;
@@ -11,14 +11,15 @@ interface LineItem {
   unit_price: number;
 }
 
-const INSTRUMENT_TYPES = ["guitar", "bass", "ukulele", "violin", "other"] as const;
+// This shop only tracks the instrument's name/description (e.g. "Fender
+// Stratocaster") — no type picker. instrument_type is still sent to satisfy
+// the database column, always as "guitar".
+const INSTRUMENT_TYPE = "guitar";
 
 export default function NewRepairForm({
   services,
-  technicians,
 }: {
   services: Service[];
-  technicians: Technician[];
 }) {
   const router = useRouter();
 
@@ -36,7 +37,6 @@ export default function NewRepairForm({
   });
 
   // Instrument
-  const [instrumentType, setInstrumentType] = useState<string>("guitar");
   const [instrumentDescription, setInstrumentDescription] = useState("");
   const [showMoreInstrument, setShowMoreInstrument] = useState(false);
   const [brand, setBrand] = useState("");
@@ -50,9 +50,8 @@ export default function NewRepairForm({
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [manualOverride, setManualOverride] = useState(false);
 
-  // Technician
+  // Technician (only one, so we just track pay — no name selection)
   const [technicianRequired, setTechnicianRequired] = useState(false);
-  const [technicianId, setTechnicianId] = useState("");
   const [technicianPay, setTechnicianPay] = useState("");
 
   const [verballyDiscussed, setVerballyDiscussed] = useState(false);
@@ -138,7 +137,7 @@ export default function NewRepairForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: customerId,
-          instrument_type: instrumentType,
+          instrument_type: INSTRUMENT_TYPE,
           instrument_description: instrumentDescription,
           brand,
           model,
@@ -147,7 +146,7 @@ export default function NewRepairForm({
           quote_total: effectiveTotal,
           line_items: showBreakdown ? lineItems : undefined,
           technician_required: technicianRequired,
-          technician_id: technicianRequired ? technicianId || null : null,
+          technician_id: null,
           technician_pay: technicianRequired ? Number(technicianPay || 0) : null,
           verbally_discussed: verballyDiscussed,
           notes,
@@ -269,25 +268,9 @@ export default function NewRepairForm({
       {/* Instrument */}
       <section className="card space-y-2">
         <h2 className="text-sm font-semibold text-slate-800">Instrument</h2>
-        <div className="flex flex-wrap gap-2">
-          {INSTRUMENT_TYPES.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setInstrumentType(t)}
-              className={`rounded-md border px-3 py-1.5 text-sm capitalize ${
-                instrumentType === t
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
         <input
           className="input"
-          placeholder="Free text description (e.g. 'red electric guitar, small dent on body')"
+          placeholder="Instrument (e.g. 'Fender Stratocaster, red, small dent on body')"
           value={instrumentDescription}
           onChange={(e) => setInstrumentDescription(e.target.value)}
         />
@@ -435,24 +418,14 @@ export default function NewRepairForm({
           Needs an external technician
         </label>
         {technicianRequired && (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <select className="input" value={technicianId} onChange={(e) => setTechnicianId(e.target.value)}>
-              <option value="">Select technician…</option>
-              {technicians.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              placeholder="Technician pay (£)"
-              value={technicianPay}
-              onChange={(e) => setTechnicianPay(e.target.value)}
-            />
-          </div>
+          <input
+            type="number"
+            step="0.01"
+            className="input max-w-[200px]"
+            placeholder="Technician pay (£)"
+            value={technicianPay}
+            onChange={(e) => setTechnicianPay(e.target.value)}
+          />
         )}
       </section>
 

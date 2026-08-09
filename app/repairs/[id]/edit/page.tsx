@@ -17,7 +17,6 @@ export default async function EditRepairPage({
 
   const { data: repairItems } = await supabase.from("repair_items").select("*").eq("repair_id", id);
   const { data: services } = await supabase.from("services").select("*").eq("active", true).order("name");
-  const { data: technicians } = await supabase.from("technicians").select("*").eq("active", true).order("name");
   const { data: latestApproval } = await supabase
     .from("quote_approvals")
     .select("*")
@@ -33,7 +32,6 @@ export default async function EditRepairPage({
         repair={repair}
         repairItems={repairItems ?? []}
         services={services ?? []}
-        technicians={technicians ?? []}
         isApproved={latestApproval?.response === "approved" && !latestApproval.cancelled_by_staff}
       />
     </div>

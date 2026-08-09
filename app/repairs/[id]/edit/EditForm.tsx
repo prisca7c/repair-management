@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Warning from "@/components/Warning";
-import type { Repair, RepairItem, Service, Technician } from "@/lib/database.types";
+import type { Repair, RepairItem, Service } from "@/lib/database.types";
 
 interface LineItem {
   description: string;
@@ -15,13 +15,11 @@ export default function EditForm({
   repair,
   repairItems,
   services,
-  technicians,
   isApproved,
 }: {
   repair: Repair;
   repairItems: RepairItem[];
   services: Service[];
-  technicians: Technician[];
   isApproved: boolean;
 }) {
   const router = useRouter();
@@ -35,7 +33,6 @@ export default function EditForm({
     repairItems.map((it) => ({ description: it.description, quantity: it.quantity, unit_price: it.unit_price }))
   );
   const [technicianRequired, setTechnicianRequired] = useState(repair.technician_required);
-  const [technicianId, setTechnicianId] = useState(repair.technician_id ?? "");
   const [technicianPay, setTechnicianPay] = useState(String(repair.technician_pay ?? ""));
 
   const [warning, setWarning] = useState<string | null>(null);
@@ -67,7 +64,7 @@ export default function EditForm({
           model,
           serial_number: serialNumber,
           technician_required: technicianRequired,
-          technician_id: technicianRequired ? technicianId || null : null,
+          technician_id: null,
           technician_pay: technicianRequired ? Number(technicianPay || 0) : null,
         }),
       });
@@ -207,24 +204,14 @@ export default function EditForm({
           Needs an external technician
         </label>
         {technicianRequired && (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <select className="input" value={technicianId} onChange={(e) => setTechnicianId(e.target.value)}>
-              <option value="">Select technician…</option>
-              {technicians.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              placeholder="Technician pay (£)"
-              value={technicianPay}
-              onChange={(e) => setTechnicianPay(e.target.value)}
-            />
-          </div>
+          <input
+            type="number"
+            step="0.01"
+            className="input max-w-[200px]"
+            placeholder="Technician pay (£)"
+            value={technicianPay}
+            onChange={(e) => setTechnicianPay(e.target.value)}
+          />
         )}
       </section>
 

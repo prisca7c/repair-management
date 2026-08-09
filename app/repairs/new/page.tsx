@@ -10,16 +10,11 @@ export default async function NewRepairPage() {
     .select("*")
     .eq("active", true)
     .order("name");
-  const { data: technicians } = await supabase
-    .from("technicians")
-    .select("*")
-    .eq("active", true)
-    .order("name");
 
   return (
     <div className="max-w-3xl">
       <h1 className="mb-4 text-xl font-semibold text-slate-900">New repair</h1>
-      <NewRepairForm services={services ?? []} technicians={technicians ?? []} />
+      <NewRepairForm services={services ?? []} />
     </div>
   );
 }

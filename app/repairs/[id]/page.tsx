@@ -28,7 +28,7 @@ export default async function RepairDetailPage({
 
   const { data: repair } = await supabase
     .from("repairs")
-    .select("*, customers(*), technicians(*)")
+    .select("*, customers(*)")
     .eq("id", id)
     .single();
 
@@ -67,7 +67,6 @@ export default async function RepairDetailPage({
     email: string | null;
     phone: string | null;
   } | null;
-  const technician = repair.technicians as { id: string; name: string } | null;
 
   const latestApproval = approvals?.[0] ?? null;
   const latestQuoteVersion = quoteVersions?.[0] ?? null;
@@ -98,7 +97,7 @@ export default async function RepairDetailPage({
               "Unknown customer"
             )}
             {" · "}
-            {repair.brand} {repair.model} ({repair.instrument_type})
+            {repair.instrument_description || [repair.brand, repair.model].filter(Boolean).join(" ") || "-"}
           </p>
         </div>
       </div>
@@ -236,7 +235,6 @@ export default async function RepairDetailPage({
                 Technician
                 <InfoIcon text="What we owe the external technician for this job." />
               </h2>
-              <p className="text-sm text-slate-700">{technician?.name ?? "Not assigned"}</p>
               <p className="text-sm text-slate-700">
                 Pay: {formatMoney(repair.technician_pay)} — {repair.technician_paid ? "Paid" : "Unpaid"}
                 {repair.technician_paid_at ? ` (${formatDateTime(repair.technician_paid_at)})` : ""}

@@ -8,8 +8,8 @@ export default async function TechnicianPaymentsPage() {
   const supabase = await createClient();
   const { data: repairs } = await supabase
     .from("repairs")
-    .select("*, customers(first_name, last_name), technicians(name)")
-    .not("technician_id", "is", null)
+    .select("*, customers(first_name, last_name)")
+    .eq("technician_required", true)
     .gt("technician_pay", 0)
     .eq("technician_paid", false)
     .order("received_at", { ascending: true });
@@ -25,7 +25,6 @@ export default async function TechnicianPaymentsPage() {
             <tr>
               <th className="px-3 py-2 font-medium">Repair #</th>
               <th className="px-3 py-2 font-medium">Customer</th>
-              <th className="px-3 py-2 font-medium">Technician</th>
               <th className="px-3 py-2 font-medium">Amount</th>
               <th className="px-3 py-2 font-medium"></th>
             </tr>
@@ -33,12 +32,10 @@ export default async function TechnicianPaymentsPage() {
           <tbody className="divide-y divide-slate-100">
             {(repairs ?? []).map((r) => {
               const c = r.customers as { first_name: string; last_name: string } | null;
-              const t = r.technicians as { name: string } | null;
               return (
                 <tr key={r.id}>
                   <td className="px-3 py-2 font-medium">{r.repair_number}</td>
                   <td className="px-3 py-2">{c ? customerFullName(c) : "-"}</td>
-                  <td className="px-3 py-2">{t?.name ?? "-"}</td>
                   <td className="px-3 py-2">{formatMoney(r.technician_pay)}</td>
                   <td className="px-3 py-2">
                     <MarkPaidButton repairId={r.id} />
@@ -48,7 +45,7 @@ export default async function TechnicianPaymentsPage() {
             })}
             {(!repairs || repairs.length === 0) && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={4} className="px-3 py-6 text-center text-slate-400">
                   Nothing owed right now.
                 </td>
               </tr>

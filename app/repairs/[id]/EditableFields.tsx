@@ -60,9 +60,15 @@ export default function EditableFields({
         <Field label="Customer email">{customer?.email || "-"}</Field>
         <Field label="Customer phone">{customer?.phone || "-"}</Field>
         <Field label="Instrument">
-          {repair.brand} {repair.model} {repair.serial_number ? `(SN ${repair.serial_number})` : ""}
+          {repair.instrument_description || "-"}
+          {(repair.brand || repair.model) && (
+            <span className="text-slate-500">
+              {" "}
+              ({[repair.brand, repair.model].filter(Boolean).join(" ")}
+              {repair.serial_number ? `, SN ${repair.serial_number}` : ""})
+            </span>
+          )}
         </Field>
-        <Field label="Description">{repair.instrument_description || "-"}</Field>
         <Field label="Work">{repair.work_description || "-"}</Field>
         <Field
           label={
