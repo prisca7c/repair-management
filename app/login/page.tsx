@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   const supabase = createAdminClient();
-  const { data: staff } = await supabase
+  const { data: staff, error } = await supabase
     .from("users")
     .select("id, name, role")
     .order("name");
@@ -22,10 +22,17 @@ export default async function LoginPage() {
         <p className="mb-4 text-sm text-slate-500">Who are you?</p>
 
         {staffList.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            No staff set up yet — run supabase/seed.sql or add rows to
-            public.users.
-          </p>
+          <div className="text-sm text-slate-500">
+            <p>
+              No staff set up yet — run supabase/seed.sql or add rows to
+              public.users.
+            </p>
+            {error ? (
+              <p className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+                Debug: {error.message} (code: {error.code ?? "none"})
+              </p>
+            ) : null}
+          </div>
         ) : (
           <div className="space-y-2">
             {staffList.map((user) => (
