@@ -46,7 +46,6 @@ export default function NewRepairForm({
   // Work / quote
   const [workDescription, setWorkDescription] = useState("");
   const [quoteTotal, setQuoteTotal] = useState<string>("");
-  const [showBreakdown, setShowBreakdown] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [manualOverride, setManualOverride] = useState(false);
 
@@ -88,7 +87,7 @@ export default function NewRepairForm({
         unit_price: service?.price ?? 0,
       },
     ]);
-    setShowBreakdown(true);
+    setManualOverride(false);
   }
 
   function updateLineItem(index: number, patch: Partial<LineItem>) {
@@ -99,7 +98,7 @@ export default function NewRepairForm({
     setLineItems((items) => items.filter((_, i) => i !== index));
   }
 
-  const effectiveTotal = showBreakdown && lineItems.length > 0 && !manualOverride
+  const effectiveTotal = lineItems.length > 0 && !manualOverride
     ? breakdownTotal
     : Number(quoteTotal || 0);
 
@@ -144,7 +143,7 @@ export default function NewRepairForm({
           serial_number: serialNumber,
           work_description: workDescription,
           quote_total: effectiveTotal,
-          line_items: showBreakdown ? lineItems : undefined,
+          line_items: lineItems.length > 0 ? lineItems : undefined,
           technician_required: technicianRequired,
           technician_id: null,
           technician_pay: technicianRequired ? Number(technicianPay || 0) : null,
@@ -298,32 +297,32 @@ export default function NewRepairForm({
       {/* Work + quote */}
       <section className="card space-y-2">
         <h2 className="text-sm font-semibold text-slate-800">Work & quote</h2>
-        <textarea
-          className="input"
-          rows={2}
-          placeholder="What's being done?"
-          value={workDescription}
-          onChange={(e) => setWorkDescription(e.target.value)}
-        />
-        <div className="flex items-center gap-2">
-          <label className="label mb-0">Quote total (£)</label>
-          <input
-            type="number"
-            step="0.01"
-            className="input max-w-[140px]"
-            value={showBreakdown && lineItems.length > 0 && !manualOverride ? breakdownTotal.toFixed(2) : quoteTotal}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="input max-w-[220px]"
+            defaultValue=""
             onChange={(e) => {
-              setManualOverride(true);
-              setQuoteTotal(e.target.value);
+              const svc = services.find((s) => s.id === e.target.value);
+              if (svc) addLineItem(svc);
+              e.target.value = "";
             }}
-          />
-        </div>
-        {!showBreakdown && (
-          <button type="button" className="text-sm text-slate-600 hover:underline" onClick={() => setShowBreakdown(true)}>
-            + Add price breakdown
+          >
+            <option value="" disabled>
+              Add from service catalogue…
+            </option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} — £{s.price.toFixed(2)}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn-secondary" onClick={() => addLineItem()}>
+            + Custom item
           </button>
-        )}
-        {showBreakdown && (
+        </div>
+
+        {lineItems.length > 0 && (
           <div className="space-y-2 rounded-md border border-slate-200 p-3">
             {lineItems.map((li, i) => (
               <div key={i} className="flex flex-wrap items-center gap-2">
@@ -337,7 +336,10 @@ export default function NewRepairForm({
                   type="number"
                   className="input w-16"
                   value={li.quantity}
-                  onChange={(e) => updateLineItem(i, { quantity: Number(e.target.value) })}
+                  onChange={(e) => {
+                    setManualOverride(false);
+                    updateLineItem(i, { quantity: Number(e.target.value) });
+                  }}
                 />
                 <input
                   type="number"
@@ -357,35 +359,33 @@ export default function NewRepairForm({
                 </button>
               </div>
             ))}
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                className="input max-w-[220px]"
-                defaultValue=""
-                onChange={(e) => {
-                  const svc = services.find((s) => s.id === e.target.value);
-                  if (svc) addLineItem(svc);
-                  e.target.value = "";
-                }}
-              >
-                <option value="" disabled>
-                  Add from service catalogue…
-                </option>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} — £{s.price.toFixed(2)}
-                  </option>
-                ))}
-              </select>
-              <button type="button" className="btn-secondary" onClick={() => addLineItem()}>
-                + Custom item
-              </button>
-            </div>
-            <div className="text-right text-sm font-medium text-slate-700">
-              Breakdown total: £{breakdownTotal.toFixed(2)}
-              {manualOverride && " (overridden above)"}
-            </div>
           </div>
         )}
+
+        <textarea
+          className="input"
+          rows={2}
+          placeholder="What's being done?"
+          value={workDescription}
+          onChange={(e) => setWorkDescription(e.target.value)}
+        />
+
+        <div className="flex items-center gap-2 border-t border-slate-100 pt-2">
+          <label className="label mb-0">Quote total (£)</label>
+          <input
+            type="number"
+            step="0.01"
+            className="input max-w-[140px]"
+            value={lineItems.length > 0 && !manualOverride ? breakdownTotal.toFixed(2) : quoteTotal}
+            onChange={(e) => {
+              setManualOverride(true);
+              setQuoteTotal(e.target.value);
+            }}
+          />
+          {lineItems.length > 0 && !manualOverride && (
+            <span className="text-xs text-slate-400">auto-totalled from items above</span>
+          )}
+        </div>
       </section>
 
       {/* Location */}

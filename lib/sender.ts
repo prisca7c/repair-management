@@ -43,6 +43,7 @@ async function senderFetch(path: string, init: RequestInit) {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      Accept: "application/json",
       Authorization: `Bearer ${token}`,
       ...(init.headers || {}),
     },
@@ -123,11 +124,11 @@ async function sendEmail(
   try {
     if (!fromEmail) throw new Error("REPAIR_FROM_EMAIL is not configured");
 
-    await senderFetch("/emails/send", {
+    await senderFetch("/message/send", {
       method: "POST",
       body: JSON.stringify({
         from: { email: fromEmail, name: fromName },
-        to: [{ email: params.to }],
+        to: { email: params.to },
         subject: params.subject,
         html: params.html,
       }),

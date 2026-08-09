@@ -125,67 +125,73 @@ export default function EditForm({
 
       <section className="card space-y-2">
         <h2 className="text-sm font-semibold text-slate-800">Work & quote</h2>
-        <textarea className="input" rows={2} value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} />
-        <div className="space-y-2 rounded-md border border-slate-200 p-3">
-          {lineItems.map((li, i) => (
-            <div key={i} className="flex flex-wrap items-center gap-2">
-              <input
-                className="input flex-1"
-                value={li.description}
-                onChange={(e) => updateLineItem(i, { description: e.target.value })}
-              />
-              <input
-                type="number"
-                className="input w-16"
-                value={li.quantity}
-                onChange={(e) => updateLineItem(i, { quantity: Number(e.target.value) })}
-              />
-              <input
-                type="number"
-                step="0.01"
-                className="input w-24"
-                value={li.unit_price}
-                onChange={(e) => updateLineItem(i, { unit_price: Number(e.target.value) })}
-              />
-              <span className="w-16 text-right text-sm text-slate-600">£{(li.quantity * li.unit_price).toFixed(2)}</span>
-              <button
-                type="button"
-                className="text-xs text-rose-500"
-                onClick={() => setLineItems((items) => items.filter((_, idx) => idx !== i))}
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="input max-w-[220px]"
-              defaultValue=""
-              onChange={(e) => {
-                const svc = services.find((s) => s.id === e.target.value);
-                if (svc) setLineItems((items) => [...items, { description: svc.name, quantity: 1, unit_price: svc.price }]);
-                e.target.value = "";
-              }}
-            >
-              <option value="" disabled>
-                Add from service catalogue…
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="input max-w-[220px]"
+            defaultValue=""
+            onChange={(e) => {
+              const svc = services.find((s) => s.id === e.target.value);
+              if (svc) setLineItems((items) => [...items, { description: svc.name, quantity: 1, unit_price: svc.price }]);
+              e.target.value = "";
+            }}
+          >
+            <option value="" disabled>
+              Add from service catalogue…
+            </option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} — £{s.price.toFixed(2)}
               </option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} — £{s.price.toFixed(2)}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setLineItems((items) => [...items, { description: "", quantity: 1, unit_price: 0 }])}
-            >
-              + Custom item
-            </button>
-          </div>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setLineItems((items) => [...items, { description: "", quantity: 1, unit_price: 0 }])}
+          >
+            + Custom item
+          </button>
         </div>
-        <div className="flex items-center gap-2">
+
+        {lineItems.length > 0 && (
+          <div className="space-y-2 rounded-md border border-slate-200 p-3">
+            {lineItems.map((li, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2">
+                <input
+                  className="input flex-1"
+                  value={li.description}
+                  onChange={(e) => updateLineItem(i, { description: e.target.value })}
+                />
+                <input
+                  type="number"
+                  className="input w-16"
+                  value={li.quantity}
+                  onChange={(e) => updateLineItem(i, { quantity: Number(e.target.value) })}
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input w-24"
+                  value={li.unit_price}
+                  onChange={(e) => updateLineItem(i, { unit_price: Number(e.target.value) })}
+                />
+                <span className="w-16 text-right text-sm text-slate-600">£{(li.quantity * li.unit_price).toFixed(2)}</span>
+                <button
+                  type="button"
+                  className="text-xs text-rose-500"
+                  onClick={() => setLineItems((items) => items.filter((_, idx) => idx !== i))}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <textarea className="input" rows={2} value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} />
+
+        <div className="flex items-center gap-2 border-t border-slate-100 pt-2">
           <label className="label mb-0">Quote total (£)</label>
           <input
             type="number"
@@ -195,6 +201,9 @@ export default function EditForm({
             disabled={lineItems.length > 0}
             onChange={(e) => setQuoteTotal(e.target.value)}
           />
+          {lineItems.length > 0 && (
+            <span className="text-xs text-slate-400">auto-totalled from items above</span>
+          )}
         </div>
       </section>
 
