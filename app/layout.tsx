@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Lexend } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import { getCurrentUser } from "@/lib/currentUser";
+
+const lexend = Lexend({
+  subsets: ["latin"],
+  variable: "--font-lexend",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Repair Notebook",
@@ -24,8 +31,8 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+    <html lang="en" className={`h-full antialiased ${lexend.variable}`}>
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans">
         {userName && <NavBar userName={userName} />}
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
           {children}
