@@ -91,6 +91,7 @@ create table if not exists public.services (
   description text,
   price numeric(10,2) not null default 0,
   active boolean not null default true,
+  sort_order integer not null default 100,
   created_at timestamptz not null default now()
 );
 

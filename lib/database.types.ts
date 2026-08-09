@@ -44,6 +44,7 @@ export interface Service {
   description: string | null;
   price: number;
   active: boolean;
+  sort_order: number;
   created_at: string;
 }
 

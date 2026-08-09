@@ -22,14 +22,14 @@ on conflict (id) do nothing;
 -- ----------------------------------------------------------------------------
 -- SERVICES (safe to run anytime — idempotent on name)
 -- ----------------------------------------------------------------------------
-insert into public.services (name, description, price, active)
+insert into public.services (name, description, price, active, sort_order)
 select * from (values
-  ('Cleaning', 'General clean of the instrument', 10.00, true),
-  ('Restring', 'Full set of new strings fitted', 25.00, true),
-  ('Deep clean + restring', 'Deep clean plus a full restring', 35.00, true),
-  ('Minimum bench charge / small repair', 'Minimum charge for small bench jobs', 35.00, true),
-  ('Basic setup', 'Basic setup — from', 70.00, true)
-) as v(name, description, price, active)
+  ('Re-string', 'Full set of new strings fitted (shop strings)', 25.00, true, 1),
+  ('Re-string with chosen strings', 'Customer supplies/chooses the strings — price is on top of string cost', 25.00, true, 2),
+  ('Deep clean + re-string', 'Deep clean plus a full restring', 35.00, true, 3),
+  ('Basic setup', 'Basic setup (strings not included) — starting from', 70.00, true, 4),
+  ('Minimum bench', 'Minimum charge for small bench repairs', 35.00, true, 5)
+) as v(name, description, price, active, sort_order)
 where not exists (select 1 from public.services s where s.name = v.name);
 
 -- ----------------------------------------------------------------------------

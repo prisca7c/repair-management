@@ -5,7 +5,11 @@ export const dynamic = "force-dynamic";
 
 export default async function ServicesPage() {
   const supabase = await createClient();
-  const { data: services } = await supabase.from("services").select("*").order("name");
+  const { data: services } = await supabase
+    .from("services")
+    .select("*")
+    .order("sort_order")
+    .order("name");
 
   return (
     <div className="max-w-2xl space-y-4">

@@ -31,7 +31,7 @@ export default function InfoIcon({ text }: { text: string }) {
         <span
           id={id}
           role="tooltip"
-          className="absolute left-1/2 top-5 z-20 w-56 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-2 text-xs text-slate-600 shadow-lg"
+          className="absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-[240px] -translate-x-1/2 whitespace-normal break-words rounded-md border border-slate-200 bg-white p-2 text-left text-xs font-normal normal-case text-slate-600 shadow-lg"
         >
           {text}
         </span>
