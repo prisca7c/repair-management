@@ -77,10 +77,10 @@ export async function POST(
 ) {
   const { token } = await params;
   const body = await req.json().catch(() => ({}));
-  const response = body.response as "approved" | "declined" | undefined;
+  const response = body.response as "approved" | "declined" | "undo" | undefined;
   const message = (body.message as string | undefined)?.slice(0, 2000) ?? null;
 
-  if (response !== "approved" && response !== "declined") {
+  if (response !== "approved" && response !== "declined" && response !== "undo") {
     return NextResponse.json({ error: "Invalid response" }, { status: 400 });
   }
 
@@ -88,6 +88,39 @@ export async function POST(
 
   if (!approval) {
     return NextResponse.json({ error: "This approval link is invalid." }, { status: 404 });
+  }
+
+  // Undo — lets the customer walk back a mis-click while the tab is still
+  // open. Only allowed while it's still the same, unresolved approval (i.e.
+  // nothing else has moved the repair along since).
+  if (response === "undo") {
+    if (approval.response === "pending") {
+      return NextResponse.json({ view: publicView(approval) });
+    }
+    const wasApproved = approval.response === "approved";
+    const repairId = approval.repair_id as string;
+
+    await admin
+      .from("quote_approvals")
+      .update({ response: "pending", responded_at: null, customer_message: null })
+      .eq("id", approval.id);
+
+    if (wasApproved) {
+      // Only revert working -> received if nothing has moved on since (e.g.
+      // staff hasn't already started work in a status beyond "working").
+      await admin.from("repairs").update({ status: "received" }).eq("id", repairId).eq("status", "working");
+    }
+
+    await admin.from("audit_log").insert({
+      repair_id: repairId,
+      actor_id: null,
+      actor_name: "Customer (via approval link)",
+      action: "customer_undo_response",
+      to_value: { quote_approval_id: approval.id },
+    });
+
+    const { approval: latest } = await loadApprovalByToken(token);
+    return NextResponse.json({ view: latest ? publicView(latest) : null });
   }
 
   const expired = new Date(approval.token_expires_at).getTime() < Date.now();

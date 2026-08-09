@@ -34,6 +34,11 @@ export async function POST(
   const collectedAt = new Date().toISOString();
   const customerPaid = paid || before.customer_paid; // never un-set a prior payment
 
+  // Collected + paid = nothing left to track — archive it automatically.
+  // Undoable: "Undo last change" reverts the collect, and archived repairs
+  // can be brought back with the archive undo entry too.
+  const shouldArchive = customerPaid;
+
   const { data: after, error } = await supabase
     .from("repairs")
     .update({
@@ -41,6 +46,7 @@ export async function POST(
       customer_paid: customerPaid,
       job_done: true,
       collected_at: collectedAt,
+      ...(shouldArchive ? { archived_at: collectedAt } : {}),
     })
     .eq("id", id)
     .select("*")
@@ -67,11 +73,13 @@ export async function POST(
       status: before.status,
       customer_paid: before.customer_paid,
       collected_at: before.collected_at,
+      archived_at: before.archived_at,
     },
     to_value: {
       status: after?.status,
       customer_paid: after?.customer_paid,
       collected_at: after?.collected_at,
+      archived_at: after?.archived_at,
     },
   });
 

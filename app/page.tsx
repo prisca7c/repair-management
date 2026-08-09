@@ -8,6 +8,7 @@ import {
   customerFullName,
   STATUS_LABELS,
   STATUS_COLORS,
+  SELECTABLE_STATUSES,
   APPROVAL_LABELS,
   APPROVAL_COLORS,
   LOCATION_LABELS,
@@ -60,7 +61,6 @@ export default async function DashboardPage({
   const counters = {
     received: all.filter((r) => r.status === "received").length,
     working: all.filter((r) => r.status === "working").length,
-    waiting: all.filter((r) => r.status === "waiting").length,
     ready: all.filter((r) => r.status === "ready").length,
   };
 
@@ -109,11 +109,25 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <CounterCard label="Received" value={counters.received} status="received" />
-        <CounterCard label="Working" value={counters.working} status="working" />
-        <CounterCard label="Waiting" value={counters.waiting} status="waiting" />
-        <CounterCard label="Ready" value={counters.ready} status="ready" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <CounterCard
+          label="Received"
+          value={counters.received}
+          status="received"
+          info="Just came in — not started yet."
+        />
+        <CounterCard
+          label="Working"
+          value={counters.working}
+          status="working"
+          info="Customer approved and it's actively being worked on."
+        />
+        <CounterCard
+          label="Ready"
+          value={counters.ready}
+          status="ready"
+          info="Fixed and waiting in the shop — not picked up yet, regardless of payment."
+        />
       </div>
 
       {unpaidPickups.length > 0 && (
@@ -172,9 +186,9 @@ export default async function DashboardPage({
         />
         <select name="status" defaultValue={status ?? ""} className="input max-w-[160px]">
           <option value="">All statuses</option>
-          {Object.entries(STATUS_LABELS).map(([k, v]) => (
+          {SELECTABLE_STATUSES.map((k) => (
             <option key={k} value={k}>
-              {v}
+              {STATUS_LABELS[k]}
             </option>
           ))}
         </select>
@@ -291,16 +305,25 @@ function CounterCard({
   label,
   value,
   status,
+  info,
 }: {
   label: string;
   value: number;
   status: string;
+  info?: string;
 }) {
   return (
-    <Link href={`/?status=${status}`} className="card block hover:border-slate-300">
-      <div className="text-2xl font-semibold text-slate-900">{value}</div>
-      <div className="text-xs text-slate-500">{label}</div>
-    </Link>
+    <div className="card relative hover:border-slate-300">
+      <Link href={`/?status=${status}`} className="block">
+        <div className="text-2xl font-semibold text-slate-900">{value}</div>
+        <div className="text-xs text-slate-500">{label}</div>
+      </Link>
+      {info && (
+        <div className="absolute right-3 top-3" onClick={(e) => e.stopPropagation()}>
+          <InfoIcon text={info} />
+        </div>
+      )}
+    </div>
   );
 }
 

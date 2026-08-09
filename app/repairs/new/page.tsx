@@ -9,6 +9,7 @@ export default async function NewRepairPage() {
     .from("services")
     .select("*")
     .eq("active", true)
+    .order("sort_order")
     .order("name");
 
   return (

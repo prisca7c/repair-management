@@ -120,6 +120,7 @@ export async function POST(
           status: fromValue.status,
           customer_paid: fromValue.customer_paid,
           collected_at: fromValue.collected_at,
+          archived_at: "archived_at" in fromValue ? fromValue.archived_at : null,
         })
         .eq("id", id)
         .select("*")

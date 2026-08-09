@@ -35,7 +35,7 @@ export default function ApprovePage({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [agree, setAgree] = useState(false);
-  const [submitting, setSubmitting] = useState<"approved" | "declined" | null>(null);
+  const [submitting, setSubmitting] = useState<"approved" | "declined" | "undo" | null>(null);
 
   useEffect(() => {
     fetch(`/api/approve/${token}`)
@@ -51,7 +51,7 @@ export default function ApprovePage({
       .finally(() => setLoading(false));
   }, [token]);
 
-  async function respond(response: "approved" | "declined") {
+  async function respond(response: "approved" | "declined" | "undo") {
     setSubmitting(response);
     try {
       const res = await fetch(`/api/approve/${token}`, {
@@ -106,6 +106,12 @@ export default function ApprovePage({
                   <dd>{view.workDescription || "-"}</dd>
                 </div>
               )}
+              {view.lineItems.length > 0 && view.workDescription && (
+                <div>
+                  <dt className="text-xs text-slate-500">Additional notes</dt>
+                  <dd>{view.workDescription}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs text-slate-500">Total</dt>
                 <dd className="text-base font-semibold">£{view.total.toFixed(2)}</dd>
@@ -113,18 +119,28 @@ export default function ApprovePage({
             </dl>
 
             {view.response !== "pending" ? (
-              <div className="rounded-md bg-slate-50 px-3 py-2 text-sm">
-                You have already <strong>{view.response}</strong> this quote.
-                {view.response === "approved" && (
-                  <p className="mt-1 text-slate-600">
-                    Thanks — the shop has been notified and will get started. Payment can be made by
-                    cash or card, either now or when you collect your instrument.
-                  </p>
-                )}
-                {view.response === "declined" && (
-                  <p className="mt-1 text-slate-600">The shop has been notified.</p>
-                )}
-                {view.customerMessage && <p className="mt-1 italic">&ldquo;{view.customerMessage}&rdquo;</p>}
+              <div className="space-y-3">
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-sm">
+                  You have already <strong>{view.response}</strong> this quote.
+                  {view.response === "approved" && (
+                    <p className="mt-1 text-slate-600">
+                      Thanks — the shop has been notified and will get started. Payment can be made by
+                      cash or card, either now or when you collect your instrument.
+                    </p>
+                  )}
+                  {view.response === "declined" && (
+                    <p className="mt-1 text-slate-600">The shop has been notified.</p>
+                  )}
+                  {view.customerMessage && <p className="mt-1 italic">&ldquo;{view.customerMessage}&rdquo;</p>}
+                </div>
+                <button
+                  onClick={() => respond("undo")}
+                  disabled={!!submitting}
+                  className="text-sm text-slate-500 underline hover:text-slate-700 disabled:opacity-50"
+                >
+                  {submitting === "undo" ? "Undoing…" : "Made a mistake? Undo this response"}
+                </button>
+                <p className="text-xs text-slate-400">You can close this tab now — there&apos;s nothing else to do here.</p>
               </div>
             ) : view.expired ? (
               <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">

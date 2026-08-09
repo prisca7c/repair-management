@@ -77,16 +77,33 @@ export default function NewRepairForm({
     setCustomerResults(json.customers ?? []);
   }
 
+  // A couple of the default services aren't flat-rate — "Basic setup" is a
+  // minimum starting from its price (extra on top for bigger jobs), and
+  // "Re-string with chosen strings" is the service fee plus whatever the
+  // strings themselves cost. For those, add a second £0 line the staff can
+  // fill in rather than making them do the maths.
+  function companionItem(service: Service): LineItem | null {
+    const name = service.name.toLowerCase();
+    if (name.includes("basic setup")) {
+      return { service_id: null, description: "Extra (describe what)", quantity: 1, unit_price: 0 };
+    }
+    if (name.includes("chosen strings")) {
+      return { service_id: null, description: "String cost", quantity: 1, unit_price: 0 };
+    }
+    return null;
+  }
+
   function addLineItem(service?: Service) {
-    setLineItems((items) => [
-      ...items,
-      {
+    setLineItems((items) => {
+      const base = {
         service_id: service?.id ?? null,
         description: service?.name ?? "",
         quantity: 1,
         unit_price: service?.price ?? 0,
-      },
-    ]);
+      };
+      const companion = service ? companionItem(service) : null;
+      return companion ? [...items, base, companion] : [...items, base];
+    });
     setManualOverride(false);
   }
 

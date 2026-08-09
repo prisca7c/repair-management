@@ -21,7 +21,6 @@ export default function EditableFields({
   const [toast, setToast] = useState<{ message: string; undoUrl: string } | null>(null);
 
   const [status, setStatus] = useState(repair.status);
-  const [waitingReason, setWaitingReason] = useState(repair.waiting_reason ?? "");
   const [locationType, setLocationType] = useState(repair.location_type);
   const [locationText, setLocationText] = useState(repair.location_text ?? "");
   const [jobDone, setJobDone] = useState(repair.job_done);
@@ -91,37 +90,15 @@ export default function EditableFields({
             onChange={(e) => {
               const v = e.target.value as Repair["status"];
               setStatus(v);
-              patch({ status: v, waiting_reason: v === "waiting" ? waitingReason || "other" : null });
+              patch({ status: v });
             }}
           >
             <option value="received">Received</option>
             <option value="working">Working</option>
-            <option value="waiting">Waiting</option>
             <option value="ready">Ready</option>
             <option value="collected">Collected</option>
           </select>
         </div>
-        {status === "waiting" && (
-          <div>
-            <label className="label flex items-center">
-              Waiting reason <InfoIcon text="Why the job is currently stalled." />
-            </label>
-            <select
-              className="input"
-              value={waitingReason}
-              disabled={busy}
-              onChange={(e) => {
-                setWaitingReason(e.target.value);
-                patch({ waiting_reason: e.target.value });
-              }}
-            >
-              <option value="customer">Customer</option>
-              <option value="parts">Parts</option>
-              <option value="technician">Technician</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-        )}
         <div>
           <label className="label flex items-center">
             Location <InfoIcon text="Where the instrument physically is right now." />

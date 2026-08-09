@@ -50,6 +50,20 @@ export default function EditForm({
     setLineItems((items) => items.map((it, i) => (i === index ? { ...it, ...patch } : it)));
   }
 
+  // Same companion-line logic as the New repair form — "Basic setup" and
+  // "Re-string with chosen strings" aren't flat-rate, so add a £0 line the
+  // staff fills in for the extra/string cost rather than hand-adding maths.
+  function companionItem(service: Service): LineItem | null {
+    const name = service.name.toLowerCase();
+    if (name.includes("basic setup")) {
+      return { description: "Extra (describe what)", quantity: 1, unit_price: 0 };
+    }
+    if (name.includes("chosen strings")) {
+      return { description: "String cost", quantity: 1, unit_price: 0 };
+    }
+    return null;
+  }
+
   async function handleSave() {
     setBusy(true);
     setWarning(null);
@@ -132,7 +146,11 @@ export default function EditForm({
             defaultValue=""
             onChange={(e) => {
               const svc = services.find((s) => s.id === e.target.value);
-              if (svc) setLineItems((items) => [...items, { description: svc.name, quantity: 1, unit_price: svc.price }]);
+              if (svc) {
+                const base = { description: svc.name, quantity: 1, unit_price: svc.price };
+                const companion = companionItem(svc);
+                setLineItems((items) => (companion ? [...items, base, companion] : [...items, base]));
+              }
               e.target.value = "";
             }}
           >

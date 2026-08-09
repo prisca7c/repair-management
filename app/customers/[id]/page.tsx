@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import Pill from "@/components/Pill";
-import { formatMoney, formatDate, customerFullName, STATUS_LABELS, STATUS_COLORS } from "@/lib/format";
+import { formatMoney, formatDate, STATUS_LABELS, STATUS_COLORS } from "@/lib/format";
+import CustomerEditForm from "./CustomerEditForm";
 
 export const dynamic = "force-dynamic";
 
@@ -28,19 +29,7 @@ export default async function CustomerDetailPage({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">{customerFullName(customer)}</h1>
-        <p className="text-sm text-slate-500">
-          {customer.email || "No email"} · {customer.phone || "No phone"}
-        </p>
-      </div>
-
-      {customer.notes && (
-        <section className="card">
-          <h2 className="mb-1 text-sm font-semibold text-slate-800">Notes</h2>
-          <p className="whitespace-pre-wrap text-sm text-slate-600">{customer.notes}</p>
-        </section>
-      )}
+      <CustomerEditForm customer={customer} />
 
       <section className="card">
         <h2 className="mb-2 text-sm font-semibold text-slate-800">Current repairs</h2>

@@ -16,7 +16,12 @@ export default async function EditRepairPage({
   if (!repair) notFound();
 
   const { data: repairItems } = await supabase.from("repair_items").select("*").eq("repair_id", id);
-  const { data: services } = await supabase.from("services").select("*").eq("active", true).order("name");
+  const { data: services } = await supabase
+    .from("services")
+    .select("*")
+    .eq("active", true)
+    .order("sort_order")
+    .order("name");
   const { data: latestApproval } = await supabase
     .from("quote_approvals")
     .select("*")

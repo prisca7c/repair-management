@@ -201,10 +201,21 @@ export async function sendApprovalEmail(
   const { appBaseUrl } = getConfig();
   const link = `${appBaseUrl}/approve/${params.token}`;
   const items = lineItemsHtml(params.lineItems);
+  // If there's a line-item breakdown, show it as "Work:"; the free-text box
+  // (no price attached) is just extra context, so it's shown separately as
+  // "Additional notes" underneath rather than replacing the breakdown.
+  const workBlock = items
+    ? `<p><strong>Work:</strong></p>${items}`
+    : `<p><strong>Work:</strong> ${escapeHtml(params.workDescription || "-")}</p>`;
+  const notesBlock =
+    items && params.workDescription
+      ? `<p><strong>Additional notes:</strong> ${escapeHtml(params.workDescription)}</p>`
+      : "";
   const html = `
     <p>Hi ${escapeHtml(params.customerName)},</p>
     <p>Your repair <strong>${escapeHtml(params.repairNumber)}</strong> has a quote ready for approval:</p>
-    ${items || `<p><strong>Work:</strong> ${escapeHtml(params.workDescription || "-")}</p>`}
+    ${workBlock}
+    ${notesBlock}
     <p><strong>Total:</strong> £${params.total.toFixed(2)}</p>
     <p><a href="${link}">Review and respond to this quote</a></p>
     <p>This link will expire in 14 days.</p>

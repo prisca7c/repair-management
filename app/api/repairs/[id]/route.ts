@@ -78,6 +78,16 @@ export async function PATCH(
     update.ready_at = new Date().toISOString();
   }
 
+  // Collected + paid = nothing left to track — archive automatically. This
+  // covers the case where "Customer paid" gets ticked after the instrument
+  // was already collected unpaid (the collect route handles the "paid at
+  // pickup" case itself).
+  const resultingStatus = (update.status as string | undefined) ?? before.status;
+  const resultingPaid = "customer_paid" in update ? Boolean(update.customer_paid) : before.customer_paid;
+  if (resultingStatus === "collected" && resultingPaid && !before.archived_at) {
+    update.archived_at = new Date().toISOString();
+  }
+
   const { data: after, error } = await supabase
     .from("repairs")
     .update(update)

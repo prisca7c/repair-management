@@ -73,7 +73,7 @@ export default function RepairActions({ repair, latestApproval }: Props) {
         )}
         {repair.status !== "collected" && (
           <button
-            className="btn-primary"
+            className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
             disabled={!!busy}
             onClick={() =>
               call(`/api/repairs/${repair.id}/collect`, { method: "card", paid: true }, "Marked paid & collected.")

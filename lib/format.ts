@@ -29,10 +29,13 @@ export function customerFullName(c: { first_name: string; last_name: string }) {
   return `${c.first_name} ${c.last_name}`.trim();
 }
 
+// "Waiting" was retired as a status — the enum still has the value for old
+// data, but the app no longer sets it. These fall back to a generic label so
+// any leftover legacy row still renders sensibly instead of showing blank.
 export const STATUS_LABELS: Record<string, string> = {
   received: "Received",
   working: "Working",
-  waiting: "Waiting",
+  waiting: "Working",
   ready: "Ready",
   collected: "Collected",
 };
@@ -40,10 +43,13 @@ export const STATUS_LABELS: Record<string, string> = {
 export const STATUS_COLORS: Record<string, string> = {
   received: "bg-slate-100 text-slate-700",
   working: "bg-blue-100 text-blue-700",
-  waiting: "bg-amber-100 text-amber-800",
+  waiting: "bg-blue-100 text-blue-700",
   ready: "bg-emerald-100 text-emerald-700",
   collected: "bg-gray-200 text-gray-600",
 };
+
+/** Statuses staff can actually pick — "waiting" is retired. */
+export const SELECTABLE_STATUSES = ["received", "working", "ready", "collected"] as const;
 
 export const APPROVAL_LABELS: Record<string, string> = {
   pending: "Awaiting approval",
