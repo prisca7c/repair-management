@@ -95,6 +95,11 @@ export default async function DashboardPage({
       (r.location_type === "home_staff" || r.location_type === "home_technician")
   );
 
+  // Picked up already but payment is still owed — separate from "Ready"
+  // (Ready = done, sitting in the shop, not yet picked up; payment status
+  // doesn't affect that). This is the list that needs chasing for money.
+  const unpaidPickups = all.filter((r) => r.status === "collected" && !r.customer_paid);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -110,6 +115,27 @@ export default async function DashboardPage({
         <CounterCard label="Waiting" value={counters.waiting} status="waiting" />
         <CounterCard label="Ready" value={counters.ready} status="ready" />
       </div>
+
+      {unpaidPickups.length > 0 && (
+        <div className="card border-amber-200 bg-amber-50">
+          <h2 className="mb-2 text-sm font-semibold text-amber-900">
+            Picked up but not paid ({unpaidPickups.length})
+          </h2>
+          <ul className="divide-y divide-amber-100 text-sm">
+            {unpaidPickups.map((r) => {
+              const c = r.customers as { first_name: string; last_name: string } | null;
+              return (
+                <li key={r.id} className="flex items-center justify-between py-1.5">
+                  <Link href={`/repairs/${r.id}`} className="text-amber-900 hover:underline">
+                    {r.repair_number} — {c ? customerFullName(c) : "Unknown"} — {instrumentLabel(r)}
+                  </Link>
+                  <span className="text-xs font-medium text-amber-800">{formatMoney(r.quote_total)} owed</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {offSite.length > 0 && (
         <div className="card">

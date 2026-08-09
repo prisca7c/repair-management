@@ -16,7 +16,9 @@ async function loadApprovalByToken(token: string) {
 
   const { data: approval } = await admin
     .from("quote_approvals")
-    .select("*, quote_versions(*), repairs(id, repair_number, instrument_type, instrument_description, brand, model, work_description, quote_total)")
+    .select(
+      "*, quote_versions(*, quote_version_items(*)), repairs(id, repair_number, instrument_type, instrument_description, brand, model, work_description, quote_total)"
+    )
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
@@ -33,7 +35,12 @@ function publicView(approval: NonNullable<Awaited<ReturnType<typeof loadApproval
     work_description: string | null;
     quote_total: number;
   } | null;
-  const quoteVersion = approval.quote_versions as { work_description: string | null; total: number; version_number: number } | null;
+  const quoteVersion = approval.quote_versions as {
+    work_description: string | null;
+    total: number;
+    version_number: number;
+    quote_version_items?: { description: string; quantity: number; unit_price: number; line_total: number }[];
+  } | null;
 
   const expired = new Date(approval.token_expires_at).getTime() < Date.now();
 
@@ -42,6 +49,7 @@ function publicView(approval: NonNullable<Awaited<ReturnType<typeof loadApproval
     instrument: [repair?.brand, repair?.model, repair?.instrument_description].filter(Boolean).join(" ") || repair?.instrument_type,
     workDescription: quoteVersion?.work_description ?? repair?.work_description ?? "",
     total: quoteVersion?.total ?? repair?.quote_total ?? 0,
+    lineItems: quoteVersion?.quote_version_items ?? [],
     response: approval.response as "pending" | "approved" | "declined",
     customerMessage: approval.customer_message,
     expired,

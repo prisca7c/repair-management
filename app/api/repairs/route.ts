@@ -172,6 +172,7 @@ export async function POST(req: NextRequest) {
         workDescription: work_description || "",
         total: quote_total ?? 0,
         token,
+        lineItems: line_items ?? [],
       });
       emailWarning = result.warning ?? null;
     } else {

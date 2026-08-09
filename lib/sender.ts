@@ -34,6 +34,40 @@ function getConfig() {
   return { token, fromEmail, fromName, groupId, appBaseUrl };
 }
 
+/** Appended to the bottom of every outgoing email. */
+function signatureHtml() {
+  const { fromName } = getConfig();
+  return `
+    <p style="margin-top:24px;color:#64748b;">
+      Thanks,<br/>
+      ${escapeHtml(fromName)}
+    </p>
+  `;
+}
+
+interface LineItemInput {
+  description: string;
+  quantity: number;
+  unit_price: number;
+}
+
+/** Renders a quote's line items as an HTML list, when there are any. */
+function lineItemsHtml(lineItems?: LineItemInput[]) {
+  if (!lineItems || lineItems.length === 0) return "";
+  const rows = lineItems
+    .map(
+      (li) => `
+        <tr>
+          <td style="padding:2px 8px 2px 0;">${escapeHtml(li.description)}${
+        li.quantity > 1 ? ` × ${li.quantity}` : ""
+      }</td>
+          <td style="padding:2px 0;text-align:right;">£${(li.quantity * li.unit_price).toFixed(2)}</td>
+        </tr>`
+    )
+    .join("");
+  return `<table style="border-collapse:collapse;margin:8px 0;">${rows}</table>`;
+}
+
 async function senderFetch(path: string, init: RequestInit) {
   const { token } = getConfig();
   if (!token) {
@@ -161,17 +195,20 @@ export async function sendApprovalEmail(
     workDescription: string;
     total: number;
     token: string;
+    lineItems?: LineItemInput[];
   }
 ): Promise<SoftResult> {
   const { appBaseUrl } = getConfig();
   const link = `${appBaseUrl}/approve/${params.token}`;
+  const items = lineItemsHtml(params.lineItems);
   const html = `
     <p>Hi ${escapeHtml(params.customerName)},</p>
     <p>Your repair <strong>${escapeHtml(params.repairNumber)}</strong> has a quote ready for approval:</p>
-    <p><strong>Work:</strong> ${escapeHtml(params.workDescription || "-")}<br/>
-       <strong>Total:</strong> £${params.total.toFixed(2)}</p>
+    ${items || `<p><strong>Work:</strong> ${escapeHtml(params.workDescription || "-")}</p>`}
+    <p><strong>Total:</strong> £${params.total.toFixed(2)}</p>
     <p><a href="${link}">Review and respond to this quote</a></p>
     <p>This link will expire in 14 days.</p>
+    ${signatureHtml()}
   `;
   return sendEmail(db, {
     repairId: params.repairId,
@@ -197,6 +234,7 @@ export async function sendConfirmationEmail(
     <p>We've received your instrument for repair <strong>${escapeHtml(params.repairNumber)}</strong>.</p>
     <p><strong>Work agreed:</strong> ${escapeHtml(params.workDescription || "-")}</p>
     <p>We'll be in touch with updates. Thanks for choosing us!</p>
+    ${signatureHtml()}
   `;
   return sendEmail(db, {
     repairId: params.repairId,
@@ -219,6 +257,8 @@ export async function sendReadyEmail(
   const html = `
     <p>Hi ${escapeHtml(params.customerName)},</p>
     <p>Good news — your repair <strong>${escapeHtml(params.repairNumber)}</strong> is ready for collection!</p>
+    <p>Payment can be made by cash or card when you collect your instrument.</p>
+    ${signatureHtml()}
   `;
   return sendEmail(db, {
     repairId: params.repairId,
@@ -243,6 +283,7 @@ export async function sendUpdateEmail(
     <p>Hi ${escapeHtml(params.customerName)},</p>
     <p>An update on your repair <strong>${escapeHtml(params.repairNumber)}</strong>:</p>
     <p>${escapeHtml(params.message)}</p>
+    ${signatureHtml()}
   `;
   return sendEmail(db, {
     repairId: params.repairId,
@@ -269,6 +310,7 @@ export async function sendCancellationEmail(
       params.reason ? `: ${escapeHtml(params.reason)}` : "."
     }</p>
     <p>We'll send a revised quote shortly if needed. Sorry for any inconvenience.</p>
+    ${signatureHtml()}
   `;
   return sendEmail(db, {
     repairId: params.repairId,
@@ -296,12 +338,45 @@ export async function sendRepairEmail(
     <p>Hi ${escapeHtml(params.customerName)},</p>
     <p>${escapeHtml(params.message)}</p>
     <p>Reference: ${escapeHtml(params.repairNumber)}</p>
+    ${signatureHtml()}
   `;
   return sendEmail(db, {
     repairId: params.repairId,
     type: params.type || "internal_notice",
     to: params.customerEmail,
     subject: params.subject,
+    html,
+  });
+}
+
+/**
+ * Sent after a repair is marked Paid & Collected, only to customers who
+ * both have an email on file AND opted into marketing (marketing_consent).
+ * A simple thank-you note, separate from the transactional "ready for
+ * collection" email — never sent to customers who didn't opt in.
+ */
+export async function sendThankYouEmail(
+  db: SupabaseClient,
+  params: {
+    repairId: string;
+    repairNumber: string;
+    customerEmail: string;
+    customerName: string;
+  }
+): Promise<SoftResult> {
+  const html = `
+    <p>Hi ${escapeHtml(params.customerName)},</p>
+    <p>Thanks for bringing your instrument in for repair <strong>${escapeHtml(
+      params.repairNumber
+    )}</strong> — we hope it's playing great!</p>
+    <p>If you have any questions about the work done, just reply to this email.</p>
+    ${signatureHtml()}
+  `;
+  return sendEmail(db, {
+    repairId: params.repairId,
+    type: "thank_you",
+    to: params.customerEmail,
+    subject: `Thanks from ${getConfig().fromName}!`,
     html,
   });
 }

@@ -75,9 +75,22 @@ export default function RepairActions({ repair, latestApproval }: Props) {
           <button
             className="btn-primary"
             disabled={!!busy}
-            onClick={() => call(`/api/repairs/${repair.id}/collect`, { method: "card" }, "Marked paid & collected.")}
+            onClick={() =>
+              call(`/api/repairs/${repair.id}/collect`, { method: "card", paid: true }, "Marked paid & collected.")
+            }
           >
             Paid &amp; Collected
+          </button>
+        )}
+        {repair.status !== "collected" && (
+          <button
+            className="btn-secondary"
+            disabled={!!busy}
+            onClick={() =>
+              call(`/api/repairs/${repair.id}/collect`, { paid: false }, "Marked collected — payment still owed.")
+            }
+          >
+            Collected — not paid yet
           </button>
         )}
         {canCancelApproval && (

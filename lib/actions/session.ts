@@ -46,3 +46,30 @@ export async function clearStaff() {
   cookieStore.delete(STAFF_COOKIE_NAME);
   redirect("/login");
 }
+
+/**
+ * Add a new staff member from the Settings page — no login/password system,
+ * so this just inserts a row into public.users that will then show up on
+ * the "Who are you?" picker.
+ */
+export async function addStaff(formData: FormData) {
+  const name = (formData.get("name") as string | null)?.trim();
+  const role = formData.get("role") === "admin" ? "admin" : "staff";
+  if (!name) redirect("/settings?error=Name+is+required");
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("users").insert({ name, role });
+  if (error) redirect(`/settings?error=${encodeURIComponent(error.message)}`);
+
+  redirect("/settings");
+}
+
+/** Remove a staff member from the picker list. */
+export async function removeStaff(formData: FormData) {
+  const id = formData.get("id") as string | null;
+  if (!id) redirect("/settings");
+
+  const supabase = createAdminClient();
+  await supabase.from("users").delete().eq("id", id);
+  redirect("/settings");
+}

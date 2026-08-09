@@ -300,7 +300,7 @@ export default function NewRepairForm({
 
         <div className="flex flex-wrap items-center gap-2">
           <select
-            className="input max-w-[220px]"
+            className="input max-w-full sm:max-w-[340px]"
             defaultValue=""
             onChange={(e) => {
               const svc = services.find((s) => s.id === e.target.value);

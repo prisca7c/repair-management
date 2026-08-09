@@ -76,14 +76,20 @@ export async function POST(
   let warning: string | null = null;
 
   if (customer?.email) {
+    const { data: versionItems } = await supabase
+      .from("quote_version_items")
+      .select("description, quantity, unit_price")
+      .eq("quote_version_id", latestVersion.id);
+
     const result = await sendApprovalEmail(supabase, {
       repairId: id,
       repairNumber: repair.repair_number,
       customerEmail: customer.email,
       customerName: `${customer.first_name} ${customer.last_name}`,
-      workDescription: repair.work_description || "",
-      total: repair.quote_total,
+      workDescription: latestVersion.work_description || repair.work_description || "",
+      total: latestVersion.total ?? repair.quote_total,
       token,
+      lineItems: versionItems ?? [],
     });
     warning = result.warning ?? null;
   } else {
