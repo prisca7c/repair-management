@@ -319,7 +319,7 @@ function CounterCard({
         <div className="text-xs text-slate-500">{label}</div>
       </Link>
       {info && (
-        <div className="absolute right-3 top-3" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute right-3 top-3">
           <InfoIcon text={info} />
         </div>
       )}

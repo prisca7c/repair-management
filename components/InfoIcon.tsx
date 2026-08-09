@@ -13,7 +13,10 @@ export default function InfoIcon({ text }: { text: string }) {
   const id = useId();
 
   return (
-    <span className="relative inline-flex items-center">
+    <span
+      className="relative inline-flex items-center"
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         type="button"
         aria-describedby={id}
