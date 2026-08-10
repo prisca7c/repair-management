@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UndoToast from "@/components/UndoToast";
 import Warning from "@/components/Warning";
@@ -25,6 +25,20 @@ export default function EditableFields({
   const [locationText, setLocationText] = useState(repair.location_text ?? "");
   const [jobDone, setJobDone] = useState(repair.job_done);
   const [customerPaid, setCustomerPaid] = useState(repair.customer_paid);
+
+  // Action buttons elsewhere on the page (Ready for collection, Paid &
+  // Collected, etc.) update the repair via a different route, then call
+  // router.refresh() to re-fetch this component's `repair` prop from the
+  // server. Without this, the fields above stay frozen at whatever they
+  // were on first mount — the page LOOKED like it needed a manual reload
+  // to catch up, even though the underlying data was already current.
+  useEffect(() => {
+    setStatus(repair.status);
+    setLocationType(repair.location_type);
+    setLocationText(repair.location_text ?? "");
+    setJobDone(repair.job_done);
+    setCustomerPaid(repair.customer_paid);
+  }, [repair]);
 
   async function patch(fields: Record<string, unknown>) {
     setBusy(true);

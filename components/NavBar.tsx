@@ -33,6 +33,7 @@ export default function NavBar({ userName }: { userName?: string | null }) {
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={false}
                   className={`rounded-md px-2.5 py-1.5 text-sm ${
                     active
                       ? "bg-slate-900 text-white"

@@ -207,7 +207,7 @@ export default async function DashboardPage({
           Search
         </button>
         {(q || status || unpaid) && (
-          <Link href="/" className="text-sm text-slate-500 hover:underline">
+          <Link href="/" className="text-sm text-slate-500 hover:underline" prefetch={false}>
             Clear
           </Link>
         )}
@@ -228,6 +228,7 @@ export default async function DashboardPage({
               <Th>
                 Approval <InfoIcon text="Approval can only change to Approved via the customer's own approval link." />
               </Th>
+              <Th>Status</Th>
               <Th>Done</Th>
               <Th>Client Paid</Th>
               <Th>
@@ -258,6 +259,9 @@ export default async function DashboardPage({
                   <Td>
                     <Pill label={APPROVAL_LABELS[approval]} className={APPROVAL_COLORS[approval]} />
                   </Td>
+                  <Td>
+                    <Pill label={STATUS_LABELS[r.status]} className={STATUS_COLORS[r.status]} />
+                  </Td>
                   <Td>{r.job_done ? "Yes" : "No"}</Td>
                   <Td>{r.customer_paid ? "Yes" : "No"}</Td>
                   <Td>{LOCATION_LABELS[r.location_type]}</Td>
@@ -268,7 +272,7 @@ export default async function DashboardPage({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-3 py-6 text-center text-sm text-slate-400">
+                <td colSpan={13} className="px-3 py-6 text-center text-sm text-slate-400">
                   No repairs match.
                 </td>
               </tr>
@@ -325,7 +329,7 @@ function CounterCard({
 }) {
   return (
     <div className="card relative hover:border-slate-300">
-      <Link href={href} className="block">
+      <Link href={href} className="block" prefetch={false}>
         <div className="text-2xl font-semibold text-slate-900">{value}</div>
         <div className="text-xs text-slate-500">{label}</div>
       </Link>
