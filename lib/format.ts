@@ -63,6 +63,35 @@ export const APPROVAL_COLORS: Record<string, string> = {
   declined: "bg-rose-100 text-rose-700",
 };
 
+/**
+ * Single combined status used on the dashboard list, folding the separate
+ * approval concept into the same pill as the repair's status: a repair the
+ * customer hasn't approved yet (or has declined) shows as "Awaiting
+ * approval" regardless of its underlying `status` column; once approved it
+ * shows its real status (Received/Working/Ready/Collected), which staff
+ * move forward manually — approving a quote never jumps it to Working by
+ * itself.
+ */
+export function dashboardStatus(
+  repairStatus: string,
+  approvalResponse: string
+): string {
+  if (approvalResponse !== "approved" && repairStatus !== "collected") {
+    return "awaiting_approval";
+  }
+  return repairStatus;
+}
+
+export const DASHBOARD_STATUS_LABELS: Record<string, string> = {
+  awaiting_approval: "Awaiting approval",
+  ...STATUS_LABELS,
+};
+
+export const DASHBOARD_STATUS_COLORS: Record<string, string> = {
+  awaiting_approval: "bg-amber-100 text-amber-800",
+  ...STATUS_COLORS,
+};
+
 export const LOCATION_LABELS: Record<string, string> = {
   repair_room: "Repair room",
   home_staff: "Home (staff)",

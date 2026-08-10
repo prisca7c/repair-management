@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clearStaff } from "@/lib/actions/session";
 
@@ -29,11 +28,16 @@ export default function NavBar({ userName }: { userName?: string | null }) {
                 link.href === "/"
                   ? pathname === "/" || pathname.startsWith("/repairs")
                   : pathname.startsWith(link.href);
+              // Plain <a> instead of next/link's <Link> on purpose: these
+              // tabs get switched between constantly, and Next's client
+              // Router Cache was serving stale RSC payloads (wrong counts,
+              // missing rows) even with prefetch disabled and
+              // staleTimes.dynamic set to 0. A real browser navigation
+              // always hits the server fresh, no caching layer to fight.
               return (
-                <Link
+                <a
                   key={link.href}
                   href={link.href}
-                  prefetch={false}
                   className={`rounded-md px-2.5 py-1.5 text-sm ${
                     active
                       ? "bg-slate-900 text-white"
@@ -41,7 +45,7 @@ export default function NavBar({ userName }: { userName?: string | null }) {
                   }`}
                 >
                   {link.label}
-                </Link>
+                </a>
               );
             })}
           </nav>

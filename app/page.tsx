@@ -7,11 +7,11 @@ import {
   formatDate,
   customerFullName,
   STATUS_LABELS,
-  STATUS_COLORS,
   SELECTABLE_STATUSES,
-  APPROVAL_LABELS,
-  APPROVAL_COLORS,
   LOCATION_LABELS,
+  dashboardStatus,
+  DASHBOARD_STATUS_LABELS,
+  DASHBOARD_STATUS_COLORS,
 } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -207,9 +207,9 @@ export default async function DashboardPage({
           Search
         </button>
         {(q || status || unpaid) && (
-          <Link href="/" className="text-sm text-slate-500 hover:underline" prefetch={false}>
+          <a href="/" className="text-sm text-slate-500 hover:underline">
             Clear
-          </Link>
+          </a>
         )}
       </form>
 
@@ -226,14 +226,13 @@ export default async function DashboardPage({
                 Client £ <InfoIcon text="The quoted total the customer will be charged." />
               </Th>
               <Th>
-                Approval <InfoIcon text="Approval can only change to Approved via the customer's own approval link." />
-              </Th>
-              <Th>Status</Th>
-              <Th>Done</Th>
-              <Th>Client Paid</Th>
-              <Th>
                 Location <InfoIcon text="Where the instrument physically is right now." />
               </Th>
+              <Th>
+                Status{" "}
+                <InfoIcon text="Awaiting approval until the customer agrees via their emailed link. After that, staff move it through Received → Working → Ready → Collected manually." />
+              </Th>
+              <Th>Client Paid</Th>
               <Th>
                 Tech £ <InfoIcon text="What we owe the external technician for this job." />
               </Th>
@@ -256,15 +255,19 @@ export default async function DashboardPage({
                   <Td>{instrumentLabel(r)}</Td>
                   <Td className="max-w-[200px] truncate">{r.work_description}</Td>
                   <Td>{formatMoney(r.quote_total)}</Td>
-                  <Td>
-                    <Pill label={APPROVAL_LABELS[approval]} className={APPROVAL_COLORS[approval]} />
-                  </Td>
-                  <Td>
-                    <Pill label={STATUS_LABELS[r.status]} className={STATUS_COLORS[r.status]} />
-                  </Td>
-                  <Td>{r.job_done ? "Yes" : "No"}</Td>
-                  <Td>{r.customer_paid ? "Yes" : "No"}</Td>
                   <Td>{LOCATION_LABELS[r.location_type]}</Td>
+                  <Td>
+                    {(() => {
+                      const ds = dashboardStatus(r.status, approval);
+                      return <Pill label={DASHBOARD_STATUS_LABELS[ds]} className={DASHBOARD_STATUS_COLORS[ds]} />;
+                    })()}
+                  </Td>
+                  <Td>
+                    <Pill
+                      label={r.customer_paid ? "Yes" : "No"}
+                      className={r.customer_paid ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}
+                    />
+                  </Td>
                   <Td>{r.technician_required ? formatMoney(r.technician_pay ?? 0) : "-"}</Td>
                   <Td>{r.technician_required ? (r.technician_paid ? "Yes" : "No") : "-"}</Td>
                 </tr>
@@ -272,7 +275,7 @@ export default async function DashboardPage({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={13} className="px-3 py-6 text-center text-sm text-slate-400">
+                <td colSpan={11} className="px-3 py-6 text-center text-sm text-slate-400">
                   No repairs match.
                 </td>
               </tr>
@@ -285,6 +288,7 @@ export default async function DashboardPage({
           {filtered.map((r) => {
             const c = r.customers as { first_name: string; last_name: string } | null;
             const approval = approvalsByRepair[r.id]?.response ?? "pending";
+            const ds = dashboardStatus(r.status, approval);
             return (
               <Link
                 key={r.id}
@@ -293,14 +297,17 @@ export default async function DashboardPage({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-slate-900">{r.repair_number}</span>
-                  <Pill label={STATUS_LABELS[r.status]} className={STATUS_COLORS[r.status]} />
+                  <Pill label={DASHBOARD_STATUS_LABELS[ds]} className={DASHBOARD_STATUS_COLORS[ds]} />
                 </div>
                 <div className="mt-1 text-sm text-slate-600">
                   {c ? customerFullName(c) : "-"} — {instrumentLabel(r)}
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
                   <span>{formatMoney(r.quote_total)}</span>
-                  <Pill label={APPROVAL_LABELS[approval]} className={APPROVAL_COLORS[approval]} />
+                  <Pill
+                    label={r.customer_paid ? "Paid" : "Not paid"}
+                    className={r.customer_paid ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}
+                  />
                 </div>
               </Link>
             );
@@ -329,10 +336,10 @@ function CounterCard({
 }) {
   return (
     <div className="card relative hover:border-slate-300">
-      <Link href={href} className="block" prefetch={false}>
+      <a href={href} className="block">
         <div className="text-2xl font-semibold text-slate-900">{value}</div>
         <div className="text-xs text-slate-500">{label}</div>
-      </Link>
+      </a>
       {info && (
         <div className="absolute right-3 top-3">
           <InfoIcon text={info} />

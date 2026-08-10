@@ -97,7 +97,6 @@ export async function POST(
     if (approval.response === "pending") {
       return NextResponse.json({ view: publicView(approval) });
     }
-    const wasApproved = approval.response === "approved";
     const repairId = approval.repair_id as string;
 
     await admin
@@ -105,11 +104,9 @@ export async function POST(
       .update({ response: "pending", responded_at: null, customer_message: null })
       .eq("id", approval.id);
 
-    if (wasApproved) {
-      // Only revert working -> received if nothing has moved on since (e.g.
-      // staff hasn't already started work in a status beyond "working").
-      await admin.from("repairs").update({ status: "received" }).eq("id", repairId).eq("status", "working");
-    }
+    // Note: approving no longer moves the repair's status by itself (staff
+    // move it from Received -> Working manually), so there's nothing to
+    // revert on the repairs table here.
 
     await admin.from("audit_log").insert({
       repair_id: repairId,
@@ -156,9 +153,10 @@ export async function POST(
 
   const repairId = approval.repair_id as string;
 
-  if (response === "approved") {
-    await admin.from("repairs").update({ status: "working" }).eq("id", repairId).eq("status", "received");
-  }
+  // Approving a quote does NOT move the repair's status by itself — staff
+  // decide when a repair actually moves from Received to Working, so this
+  // stays a manual step on the repair detail page even after the customer
+  // agrees to the terms.
 
   await admin.from("audit_log").insert({
     repair_id: repairId,
