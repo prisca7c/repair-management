@@ -23,6 +23,7 @@ function instrumentLabel(r: { instrument_description: string | null; brand: stri
 interface SearchParams {
   q?: string;
   status?: string;
+  unpaid?: string;
 }
 
 export default async function DashboardPage({
@@ -30,7 +31,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { q, status } = await searchParams;
+  const { q, status, unpaid } = await searchParams;
   const supabase = await createClient();
 
   const { data: repairs } = await supabase
@@ -62,6 +63,7 @@ export default async function DashboardPage({
     received: all.filter((r) => r.status === "received").length,
     working: all.filter((r) => r.status === "working").length,
     ready: all.filter((r) => r.status === "ready").length,
+    unpaid: all.filter((r) => r.status === "collected" && !r.customer_paid).length,
   };
 
   const term = (q ?? "").trim().toLowerCase();
@@ -88,6 +90,9 @@ export default async function DashboardPage({
   if (status) {
     filtered = filtered.filter((r) => r.status === status);
   }
+  if (unpaid) {
+    filtered = filtered.filter((r) => r.status === "collected" && !r.customer_paid);
+  }
 
   const offSite = all.filter(
     (r) =>
@@ -109,24 +114,30 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <CounterCard
           label="Received"
           value={counters.received}
-          status="received"
+          href="/?status=received"
           info="Just came in — not started yet."
         />
         <CounterCard
           label="Working"
           value={counters.working}
-          status="working"
+          href="/?status=working"
           info="Customer approved and it's actively being worked on."
         />
         <CounterCard
           label="Ready"
           value={counters.ready}
-          status="ready"
+          href="/?status=ready"
           info="Fixed and waiting in the shop — not picked up yet, regardless of payment."
+        />
+        <CounterCard
+          label="Not paid yet"
+          value={counters.unpaid}
+          href="/?unpaid=1"
+          info="Picked up already but payment is still owed. Should normally stay at 0."
         />
       </div>
 
@@ -195,7 +206,7 @@ export default async function DashboardPage({
         <button type="submit" className="btn-secondary">
           Search
         </button>
-        {(q || status) && (
+        {(q || status || unpaid) && (
           <Link href="/" className="text-sm text-slate-500 hover:underline">
             Clear
           </Link>
@@ -304,17 +315,17 @@ export default async function DashboardPage({
 function CounterCard({
   label,
   value,
-  status,
+  href,
   info,
 }: {
   label: string;
   value: number;
-  status: string;
+  href: string;
   info?: string;
 }) {
   return (
     <div className="card relative hover:border-slate-300">
-      <Link href={`/?status=${status}`} className="block">
+      <Link href={href} className="block">
         <div className="text-2xl font-semibold text-slate-900">{value}</div>
         <div className="text-xs text-slate-500">{label}</div>
       </Link>
