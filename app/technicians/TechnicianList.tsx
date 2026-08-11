@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Technician } from "@/lib/database.types";
 
 export default function TechnicianList({ technicians }: { technicians: Technician[] }) {
-  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,7 +30,7 @@ export default function TechnicianList({ technicians }: { technicians: Technicia
     setEmail("");
     setPhone("");
     setShowForm(false);
-    router.refresh();
+    window.location.reload();
   }
 
   return (

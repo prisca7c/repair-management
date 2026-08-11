@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Customer } from "@/lib/database.types";
 
 export default function CustomerEditForm({ customer }: { customer: Customer }) {
-  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(customer.first_name);
   const [lastName, setLastName] = useState(customer.last_name);
@@ -35,14 +33,13 @@ export default function CustomerEditForm({ customer }: { customer: Customer }) {
       const json = await res.json();
       if (!res.ok) {
         setWarning(json.error || "Could not save changes.");
+        setBusy(false);
         return;
       }
       if (json.syncWarning) setWarning(json.syncWarning);
-      setEditing(false);
-      router.refresh();
+      window.location.reload();
     } catch {
       setWarning("Network error — please try again.");
-    } finally {
       setBusy(false);
     }
   }

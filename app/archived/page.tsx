@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import { formatDate, customerFullName, formatMoney } from "@/lib/format";
 import RestoreButton from "./RestoreButton";
@@ -33,9 +32,9 @@ export default async function ArchivedPage() {
               return (
                 <tr key={r.id}>
                   <td className="px-3 py-2">
-                    <Link href={`/repairs/${r.id}`} className="font-medium hover:underline">
+                    <a href={`/repairs/${r.id}`} className="font-medium hover:underline">
                       {r.repair_number}
-                    </Link>
+                    </a>
                   </td>
                   <td className="px-3 py-2">{c ? customerFullName(c) : "-"}</td>
                   <td className="px-3 py-2">{formatMoney(r.quote_total)}</td>

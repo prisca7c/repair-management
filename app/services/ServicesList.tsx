@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Service } from "@/lib/database.types";
 
 interface EditState {
@@ -11,7 +10,6 @@ interface EditState {
 }
 
 export default function ServicesList({ services }: { services: Service[] }) {
-  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -39,7 +37,7 @@ export default function ServicesList({ services }: { services: Service[] }) {
     });
     setBusy(null);
     setEditingId(null);
-    router.refresh();
+    window.location.reload();
   }
 
   async function toggleActive(s: Service) {
@@ -50,7 +48,7 @@ export default function ServicesList({ services }: { services: Service[] }) {
       body: JSON.stringify({ active: !s.active }),
     });
     setBusy(null);
-    router.refresh();
+    window.location.reload();
   }
 
   async function handleAdd() {
@@ -66,7 +64,7 @@ export default function ServicesList({ services }: { services: Service[] }) {
     setPrice("");
     setDescription("");
     setShowForm(false);
-    router.refresh();
+    window.location.reload();
   }
 
   return (

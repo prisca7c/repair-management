@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Warning from "@/components/Warning";
 import type { Repair, RepairItem, Service } from "@/lib/database.types";
 
@@ -22,7 +21,6 @@ export default function EditForm({
   services: Service[];
   isApproved: boolean;
 }) {
-  const router = useRouter();
   const [instrumentDescription, setInstrumentDescription] = useState(repair.instrument_description ?? "");
   const [brand, setBrand] = useState(repair.brand ?? "");
   const [model, setModel] = useState(repair.model ?? "");
@@ -122,11 +120,11 @@ export default function EditForm({
         }
       }
 
-      router.push(`/repairs/${repair.id}`);
-      router.refresh();
+      // Full navigation, not router.push()+refresh() — guarantees the
+      // repair page renders with fresh data, no client-cached copy.
+      window.location.href = `/repairs/${repair.id}`;
     } catch {
       setWarning("Network error — please try again.");
-    } finally {
       setBusy(false);
     }
   }

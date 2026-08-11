@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import UndoToast from "@/components/UndoToast";
 import Warning from "@/components/Warning";
 import InfoIcon from "@/components/InfoIcon";
@@ -15,7 +14,6 @@ export default function EditableFields({
   repair: Repair;
   customer: { first_name: string; last_name: string; email: string | null; phone: string | null } | null;
 }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; undoUrl: string } | null>(null);
@@ -52,15 +50,20 @@ export default function EditableFields({
       const json = await res.json();
       if (!res.ok) {
         setWarning(json.error || "Could not save change.");
+        setBusy(false);
         return;
       }
+      // Real reload, not router.refresh() — needed so Audit history and
+      // Communications elsewhere on this page (and everything else) always
+      // reflect the change immediately, no stale cached copy left behind.
       if (json.undoUrl) {
         setToast({ message: "Saved.", undoUrl: json.undoUrl });
+        setTimeout(() => window.location.reload(), 8000);
+      } else {
+        window.location.reload();
       }
-      router.refresh();
     } catch {
       setWarning("Network error — please try again.");
-    } finally {
       setBusy(false);
     }
   }

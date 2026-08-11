@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import Pill from "@/components/Pill";
 import InfoIcon from "@/components/InfoIcon";
@@ -90,9 +89,9 @@ export default async function RepairDetailPage({
           </div>
           <p className="mt-1 text-sm text-slate-500">
             {customer ? (
-              <Link href={`/customers/${customer.id}`} className="hover:underline">
+              <a href={`/customers/${customer.id}`} className="hover:underline">
                 {customerFullName(customer)}
-              </Link>
+              </a>
             ) : (
               "Unknown customer"
             )}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import type { Service, Customer } from "@/lib/database.types";
 
 interface LineItem {
@@ -21,8 +20,6 @@ export default function NewRepairForm({
 }: {
   services: Service[];
 }) {
-  const router = useRouter();
-
   // Customer selection
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerResults, setCustomerResults] = useState<Customer[]>([]);
@@ -177,8 +174,9 @@ export default function NewRepairForm({
         setSubmitting(null);
         return;
       }
-      router.push(`/repairs/${json.repair.id}`);
-      router.refresh();
+      // Full navigation, not router.push()+refresh() — guarantees the new
+      // repair page renders with fresh data, no client-cached copy.
+      window.location.href = `/repairs/${json.repair.id}`;
     } catch {
       setError("Something went wrong. Please try again.");
       setSubmitting(null);

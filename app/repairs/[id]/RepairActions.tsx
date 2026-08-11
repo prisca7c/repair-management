@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import UndoToast from "@/components/UndoToast";
 import Warning from "@/components/Warning";
 import type { Repair, QuoteApproval } from "@/lib/database.types";
@@ -13,7 +12,6 @@ interface Props {
 }
 
 export default function RepairActions({ repair, latestApproval }: Props) {
-  const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; undoUrl: string } | null>(null);
@@ -34,16 +32,25 @@ export default function RepairActions({ repair, latestApproval }: Props) {
       const json = await res.json();
       if (!res.ok) {
         setWarning(json.error || "Something went wrong.");
+        setBusy(null);
         return;
       }
       if (json.warning) setWarning(json.warning);
+      // A real reload (not router.refresh()) — the Router Cache was still
+      // serving stale audit history/communications/checklist data on this
+      // page after actions even with staleTimes set to 0. If there's an
+      // undo toast to show (it auto-dismisses after 8s, see UndoToast),
+      // wait for that same window so it's actually clickable before the
+      // reload happens out from under it — clicking Undo itself reloads
+      // immediately anyway.
       if (successMessage && json.undoUrl) {
         setToast({ message: successMessage, undoUrl: json.undoUrl });
+        setTimeout(() => window.location.reload(), 8000);
+      } else {
+        window.location.reload();
       }
-      router.refresh();
     } catch {
       setWarning("Network error — please try again.");
-    } finally {
       setBusy(null);
     }
   }

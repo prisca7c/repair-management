@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import Pill from "@/components/Pill";
 import InfoIcon from "@/components/InfoIcon";
@@ -109,9 +108,9 @@ export default async function DashboardPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-900">Repairs</h1>
-        <Link href="/repairs/new" className="btn-primary">
+        <a href="/repairs/new" className="btn-primary">
           + New repair
-        </Link>
+        </a>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -151,9 +150,9 @@ export default async function DashboardPage({
               const c = r.customers as { first_name: string; last_name: string } | null;
               return (
                 <li key={r.id} className="flex items-center justify-between py-1.5">
-                  <Link href={`/repairs/${r.id}`} className="text-amber-900 hover:underline">
+                  <a href={`/repairs/${r.id}`} className="text-amber-900 hover:underline">
                     {r.repair_number} — {c ? customerFullName(c) : "Unknown"} — {instrumentLabel(r)}
-                  </Link>
+                  </a>
                   <span className="text-xs font-medium text-amber-800">{formatMoney(r.quote_total)} owed</span>
                 </li>
               );
@@ -172,10 +171,10 @@ export default async function DashboardPage({
               const c = r.customers as { first_name: string; last_name: string } | null;
               return (
                 <li key={r.id} className="flex items-center justify-between py-1.5">
-                  <Link href={`/repairs/${r.id}`} className="text-slate-700 hover:underline">
+                  <a href={`/repairs/${r.id}`} className="text-slate-700 hover:underline">
                     {r.repair_number} — {c ? customerFullName(c) : "Unknown"} —{" "}
                     {instrumentLabel(r)}
-                  </Link>
+                  </a>
                   <span className="text-xs text-slate-500">
                     {LOCATION_LABELS[r.location_type]}
                     {r.location_text ? ` — ${r.location_text}` : ""}
@@ -246,9 +245,9 @@ export default async function DashboardPage({
               return (
                 <tr key={r.id} className="hover:bg-slate-50">
                   <Td>
-                    <Link href={`/repairs/${r.id}`} className="font-medium text-slate-900 hover:underline">
+                    <a href={`/repairs/${r.id}`} className="font-medium text-slate-900 hover:underline">
                       {r.repair_number}
-                    </Link>
+                    </a>
                   </Td>
                   <Td>{formatDate(r.received_at)}</Td>
                   <Td>{c ? customerFullName(c) : "-"}</Td>
@@ -290,7 +289,7 @@ export default async function DashboardPage({
             const approval = approvalsByRepair[r.id]?.response ?? "pending";
             const ds = dashboardStatus(r.status, approval);
             return (
-              <Link
+              <a
                 key={r.id}
                 href={`/repairs/${r.id}`}
                 className="block px-3 py-3 hover:bg-slate-50"
@@ -309,7 +308,7 @@ export default async function DashboardPage({
                     className={r.customer_paid ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}
                   />
                 </div>
-              </Link>
+              </a>
             );
           })}
           {filtered.length === 0 && (

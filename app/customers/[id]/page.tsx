@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import Pill from "@/components/Pill";
 import { formatMoney, formatDate, STATUS_LABELS, STATUS_COLORS } from "@/lib/format";
@@ -56,9 +55,9 @@ function RepairList({
     <ul className="divide-y divide-slate-100 text-sm">
       {repairs.map((r) => (
         <li key={r.id} className="flex items-center justify-between py-1.5">
-          <Link href={`/repairs/${r.id}`} className="hover:underline">
+          <a href={`/repairs/${r.id}`} className="hover:underline">
             {r.repair_number} — {r.brand} {r.model}
-          </Link>
+          </a>
           <span className="flex items-center gap-2 text-xs text-slate-500">
             {formatDate(r.received_at)} · {formatMoney(r.quote_total)}
             <Pill label={STATUS_LABELS[r.status]} className={STATUS_COLORS[r.status]} />

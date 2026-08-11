@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import { customerFullName } from "@/lib/format";
 
@@ -31,9 +30,9 @@ export default async function CustomersPage({
           Search
         </button>
         {q && (
-          <Link href="/customers" className="text-sm text-slate-500 hover:underline self-center">
+          <a href="/customers" className="text-sm text-slate-500 hover:underline self-center">
             Clear
-          </Link>
+          </a>
         )}
       </form>
       <div className="card overflow-x-auto p-0">
@@ -50,9 +49,9 @@ export default async function CustomersPage({
             {(customers ?? []).map((c) => (
               <tr key={c.id} className="hover:bg-slate-50">
                 <td className="px-3 py-2">
-                  <Link href={`/customers/${c.id}`} className="font-medium text-slate-900 hover:underline">
+                  <a href={`/customers/${c.id}`} className="font-medium text-slate-900 hover:underline">
                     {customerFullName(c)}
-                  </Link>
+                  </a>
                 </td>
                 <td className="px-3 py-2">{c.email || "-"}</td>
                 <td className="px-3 py-2">{c.phone || "-"}</td>
