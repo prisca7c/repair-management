@@ -108,6 +108,12 @@ export default async function RepairDetailPage({
         </div>
       )}
 
+      {latestApproval?.customer_message && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+          <span className="font-semibold">Message from customer:</span> &ldquo;{latestApproval.customer_message}&rdquo;
+        </div>
+      )}
+
       <RepairActions
         repair={repair}
         customer={customer}

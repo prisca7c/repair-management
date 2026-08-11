@@ -173,6 +173,7 @@ export async function POST(req: NextRequest) {
         total: quote_total ?? 0,
         token,
         lineItems: line_items ?? [],
+        internalNotes: notes,
       });
       emailWarning = result.warning ?? null;
     } else {

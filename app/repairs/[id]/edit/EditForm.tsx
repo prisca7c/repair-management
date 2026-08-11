@@ -43,8 +43,24 @@ export default function EditForm({
     [lineItems]
   );
 
+  const effectiveTotal = lineItems.length > 0 ? breakdownTotal : Number(quoteTotal || 0);
+
+  // IMPORTANT: this must catch changes to the line items themselves, not
+  // just the free-text description or the (mostly display-only, since it's
+  // disabled whenever line items exist) total field. Previously this only
+  // compared workDescription/quoteTotal, so adding, removing, or editing a
+  // line item's price/description/quantity never flipped this to true —
+  // the quote POST never fired, and edits silently failed to save.
+  const originalLineItems = useMemo(
+    () => repairItems.map((it) => ({ description: it.description, quantity: it.quantity, unit_price: it.unit_price })),
+    [repairItems]
+  );
+  const lineItemsChanged = JSON.stringify(lineItems) !== JSON.stringify(originalLineItems);
+
   const quoteChanged =
-    workDescription !== (repair.work_description ?? "") || Number(quoteTotal) !== repair.quote_total;
+    workDescription !== (repair.work_description ?? "") ||
+    effectiveTotal !== repair.quote_total ||
+    lineItemsChanged;
 
   function updateLineItem(index: number, patch: Partial<LineItem>) {
     setLineItems((items) => items.map((it, i) => (i === index ? { ...it, ...patch } : it)));
@@ -89,13 +105,12 @@ export default function EditForm({
 
       // Quote fields — only create a new quote version if they changed.
       if (quoteChanged) {
-        const total = lineItems.length > 0 ? breakdownTotal : Number(quoteTotal || 0);
         const quoteRes = await fetch(`/api/repairs/${repair.id}/quote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             work_description: workDescription,
-            total,
+            total: effectiveTotal,
             line_items: lineItems.length > 0 ? lineItems : undefined,
           }),
         });

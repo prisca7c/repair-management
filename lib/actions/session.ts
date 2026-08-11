@@ -64,12 +64,32 @@ export async function addStaff(formData: FormData) {
   redirect("/settings");
 }
 
-/** Remove a staff member from the picker list. */
+/**
+ * Remove a staff member from the picker list. This is a soft delete
+ * (active = false), not a hard delete: staff who've created repairs, quote
+ * versions, payments, or audit log entries are protected by foreign key
+ * constraints, so a hard delete on them silently fails (Postgres rejects
+ * it, but the old code didn't check the error and just redirected as if it
+ * worked). Deactivating instead always works, for any staff member, and
+ * keeps their name correctly attached to the history they created.
+ */
 export async function removeStaff(formData: FormData) {
   const id = formData.get("id") as string | null;
   if (!id) redirect("/settings");
 
   const supabase = createAdminClient();
-  await supabase.from("users").delete().eq("id", id);
+  const { error } = await supabase.from("users").update({ active: false }).eq("id", id);
+  if (error) redirect(`/settings?error=${encodeURIComponent(error.message)}`);
+  redirect("/settings");
+}
+
+/** Bring a deactivated staff member back onto the picker list. */
+export async function restoreStaff(formData: FormData) {
+  const id = formData.get("id") as string | null;
+  if (!id) redirect("/settings");
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("users").update({ active: true }).eq("id", id);
+  if (error) redirect(`/settings?error=${encodeURIComponent(error.message)}`);
   redirect("/settings");
 }

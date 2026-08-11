@@ -14,6 +14,7 @@ export interface AppUser {
   email: string | null;
   name: string;
   role: UserRole;
+  active: boolean;
   created_at: string;
 }
 

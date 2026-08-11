@@ -1,7 +1,7 @@
 import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/currentUser";
 import { formatDateTime, customerFullName } from "@/lib/format";
-import { addStaff, removeStaff } from "@/lib/actions/session";
+import { addStaff, removeStaff, restoreStaff } from "@/lib/actions/session";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,9 @@ export default async function SettingsPage({
   const supabase = await createClient();
   const user = await getCurrentUser();
 
-  const { data: staff } = await supabase.from("users").select("*").order("name");
+  const { data: allStaff } = await supabase.from("users").select("*").order("name");
+  const staff = (allStaff ?? []).filter((s) => s.active);
+  const inactiveStaff = (allStaff ?? []).filter((s) => !s.active);
   const { data: failedSync } = await supabase
     .from("sender_sync_status")
     .select("*, customers(first_name, last_name, email)")
@@ -40,7 +42,7 @@ export default async function SettingsPage({
           </div>
         )}
         <ul className="divide-y divide-slate-100 text-sm">
-          {(staff ?? []).map((s) => (
+          {staff.map((s) => (
             <li key={s.id} className="flex items-center justify-between py-1.5">
               <span>{s.name}</span>
               <div className="flex items-center gap-3">
@@ -54,7 +56,7 @@ export default async function SettingsPage({
               </div>
             </li>
           ))}
-          {(!staff || staff.length === 0) && (
+          {staff.length === 0 && (
             <li className="py-1.5 text-slate-400">No staff set up yet.</li>
           )}
         </ul>
@@ -71,8 +73,28 @@ export default async function SettingsPage({
         </form>
         <p className="text-xs text-slate-400">
           No login or passwords — staff just pick their name on the &ldquo;Who are you?&rdquo; screen. Adding
-          someone here makes them show up on that list immediately.
+          someone here makes them show up on that list immediately. Removing someone just hides them from that
+          list — their name stays on any repairs/history they created, since that can&apos;t be deleted.
         </p>
+
+        {inactiveStaff.length > 0 && (
+          <div className="border-t border-slate-100 pt-3">
+            <h3 className="mb-1 text-xs font-semibold uppercase text-slate-500">Removed staff</h3>
+            <ul className="divide-y divide-slate-100 text-sm">
+              {inactiveStaff.map((s) => (
+                <li key={s.id} className="flex items-center justify-between py-1.5 text-slate-400">
+                  <span>{s.name}</span>
+                  <form action={restoreStaff}>
+                    <input type="hidden" name="id" value={s.id} />
+                    <button type="submit" className="text-xs text-slate-500 hover:underline">
+                      Restore
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       <section className="card space-y-2">

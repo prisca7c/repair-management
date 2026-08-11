@@ -196,6 +196,8 @@ export async function sendApprovalEmail(
     total: number;
     token: string;
     lineItems?: LineItemInput[];
+    /** Staff's internal "discussed verbally" notes — shown to the customer too, under Additional notes. */
+    internalNotes?: string | null;
   }
 ): Promise<SoftResult> {
   const { appBaseUrl } = getConfig();
@@ -207,9 +209,16 @@ export async function sendApprovalEmail(
   const workBlock = items
     ? `<p><strong>Work:</strong></p>${items}`
     : `<p><strong>Work:</strong> ${escapeHtml(params.workDescription || "-")}</p>`;
+  const additionalNotes: string[] = [];
+  if (items && params.workDescription) {
+    additionalNotes.push(escapeHtml(params.workDescription));
+  }
+  if (params.internalNotes) {
+    additionalNotes.push(`Discussed verbally: ${escapeHtml(params.internalNotes)}`);
+  }
   const notesBlock =
-    items && params.workDescription
-      ? `<p><strong>Additional notes:</strong> ${escapeHtml(params.workDescription)}</p>`
+    additionalNotes.length > 0
+      ? `<p><strong>Additional notes:</strong></p>${additionalNotes.map((n) => `<p>${n}</p>`).join("")}`
       : "";
   const html = `
     <p>Hi ${escapeHtml(params.customerName)},</p>

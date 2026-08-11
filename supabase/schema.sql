@@ -48,6 +48,7 @@ create table if not exists public.users (
   email text,
   name text not null,
   role user_role not null default 'staff',
+  active boolean not null default true,
   created_at timestamptz not null default now()
 );
 

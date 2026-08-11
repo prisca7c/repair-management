@@ -9,6 +9,7 @@ export default async function LoginPage() {
   const { data: staff } = await supabase
     .from("users")
     .select("id, name, role")
+    .eq("active", true)
     .order("name");
 
   const staffList = (staff ?? []) as Pick<AppUser, "id" | "name" | "role">[];

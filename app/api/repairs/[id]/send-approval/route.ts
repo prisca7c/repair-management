@@ -90,6 +90,7 @@ export async function POST(
       total: latestVersion.total ?? repair.quote_total,
       token,
       lineItems: versionItems ?? [],
+      internalNotes: repair.notes,
     });
     warning = result.warning ?? null;
   } else {
