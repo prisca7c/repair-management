@@ -134,6 +134,15 @@ create table if not exists public.repairs (
   customer_paid boolean not null default false,
   verbally_discussed boolean not null default false,
   notes text,
+  -- Payment required before work starts: 'none' (pay on collection, the
+  -- default), 'deposit' (a partial amount up front, see deposit_amount), or
+  -- 'full' (the whole quote total up front). Only relevant when set to
+  -- something other than 'none' — the approval email/page then shows bank
+  -- transfer details and requires the customer to confirm they've sent it
+  -- before they can approve the quote.
+  payment_required_type text not null default 'none'
+    check (payment_required_type in ('none', 'deposit', 'full')),
+  deposit_amount numeric(10,2),
   received_at timestamptz not null default now(),
   ready_at timestamptz,
   collected_at timestamptz,
@@ -203,6 +212,11 @@ create table if not exists public.quote_approvals (
   cancelled_by_user_id uuid references public.users(id),
   cancelled_at timestamptz,
   cancellation_reason text,
+  -- Set when the customer ticks "I have sent the bank transfer" on the
+  -- approval page. Only required/shown when the repair's
+  -- payment_required_type is not 'none'.
+  payment_confirmed boolean not null default false,
+  payment_confirmed_at timestamptz,
   created_at timestamptz not null default now()
 );
 

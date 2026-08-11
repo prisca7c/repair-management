@@ -50,6 +50,10 @@ export default function NewRepairForm({
   const [technicianRequired, setTechnicianRequired] = useState(false);
   const [technicianPay, setTechnicianPay] = useState("");
 
+  // Payment required up front, before work starts — deposit or full amount.
+  const [paymentRequiredType, setPaymentRequiredType] = useState<"none" | "deposit" | "full">("none");
+  const [depositAmount, setDepositAmount] = useState("");
+
   const [verballyDiscussed, setVerballyDiscussed] = useState(false);
   const [notes, setNotes] = useState("");
   const [locationType, setLocationType] = useState("repair_room");
@@ -166,6 +170,8 @@ export default function NewRepairForm({
           location_type: locationType,
           location_text: locationText,
           send_approval_email: mode === "save_send",
+          payment_required_type: paymentRequiredType,
+          deposit_amount: paymentRequiredType === "deposit" ? Number(depositAmount || 0) : null,
         }),
       });
       const json = await res.json();
@@ -401,6 +407,55 @@ export default function NewRepairForm({
             <span className="text-xs text-slate-400">auto-totalled from items above</span>
           )}
         </div>
+      </section>
+
+      {/* Payment required up front */}
+      <section className="card space-y-2">
+        <h2 className="text-sm font-semibold text-slate-800">Payment before work starts</h2>
+        <p className="text-xs text-slate-500">
+          By default customers pay when they collect their instrument. Choose deposit or full payment if
+          this customer needs to pay some or all of it up front — the approval email will include bank
+          transfer details, and they&apos;ll need to confirm they&apos;ve sent it before they can approve the quote.
+        </p>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="payment_required_type"
+              checked={paymentRequiredType === "none"}
+              onChange={() => setPaymentRequiredType("none")}
+            />
+            Not required upfront
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="payment_required_type"
+              checked={paymentRequiredType === "deposit"}
+              onChange={() => setPaymentRequiredType("deposit")}
+            />
+            Deposit
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="payment_required_type"
+              checked={paymentRequiredType === "full"}
+              onChange={() => setPaymentRequiredType("full")}
+            />
+            Full payment
+          </label>
+        </div>
+        {paymentRequiredType === "deposit" && (
+          <input
+            type="number"
+            step="0.01"
+            className="input max-w-[200px]"
+            placeholder="Deposit amount (£)"
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+          />
+        )}
       </section>
 
       {/* Location */}

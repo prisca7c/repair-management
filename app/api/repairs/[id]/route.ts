@@ -24,6 +24,8 @@ const EDITABLE_FIELDS = [
   "customer_paid",
   "verbally_discussed",
   "notes",
+  "payment_required_type",
+  "deposit_amount",
 ] as const;
 
 export async function GET(

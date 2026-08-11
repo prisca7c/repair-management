@@ -39,6 +39,8 @@ export async function POST(req: NextRequest) {
     location_type,
     location_text,
     send_approval_email,
+    payment_required_type,
+    deposit_amount,
   } = body as {
     customer_id: string;
     instrument_type: string;
@@ -57,6 +59,8 @@ export async function POST(req: NextRequest) {
     location_type?: string;
     location_text?: string;
     send_approval_email?: boolean;
+    payment_required_type?: "none" | "deposit" | "full";
+    deposit_amount?: number | null;
   };
 
   if (!customer_id || !instrument_type) {
@@ -88,6 +92,8 @@ export async function POST(req: NextRequest) {
       technician_pay: technician_required ? technician_pay ?? null : null,
       verbally_discussed: !!verbally_discussed,
       notes: notes || null,
+      payment_required_type: payment_required_type || "none",
+      deposit_amount: payment_required_type === "deposit" ? deposit_amount ?? null : null,
       created_by: appUser?.id ?? null,
     })
     .select("*")
@@ -174,6 +180,13 @@ export async function POST(req: NextRequest) {
         token,
         lineItems: line_items ?? [],
         internalNotes: notes,
+        paymentRequired:
+          payment_required_type && payment_required_type !== "none"
+            ? {
+                type: payment_required_type,
+                amount: payment_required_type === "deposit" ? deposit_amount ?? 0 : quote_total ?? 0,
+              }
+            : null,
       });
       emailWarning = result.warning ?? null;
     } else {

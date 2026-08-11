@@ -51,6 +51,51 @@ interface LineItemInput {
   unit_price: number;
 }
 
+/**
+ * Fixed bank transfer details for upfront deposit/full payment. Only a bank
+ * transfer for now — a hosted payment link may replace/join this later.
+ */
+const BANK_DETAILS = {
+  accountName: "Music & Life Ltd",
+  bankName: "Starling Bank",
+  sortCode: "60-83-71",
+  accountNumber: "8509-9687",
+};
+
+function bankDetailsHtml(amount: number, label: string) {
+  return `
+    <div style="margin:12px 0;padding:12px 14px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;">
+      <p style="margin:0 0 6px;"><strong>${escapeHtml(label)}: £${amount.toFixed(2)}</strong></p>
+      <p style="margin:0 0 6px;">Please pay by bank transfer to:</p>
+      <p style="margin:0;line-height:1.5;">
+        ${escapeHtml(BANK_DETAILS.accountName)}<br/>
+        ${escapeHtml(BANK_DETAILS.bankName)}<br/>
+        Sort code: ${escapeHtml(BANK_DETAILS.sortCode)}<br/>
+        Account no.: ${escapeHtml(BANK_DETAILS.accountNumber)}
+      </p>
+      <p style="margin:8px 0 0;font-size:13px;color:#64748b;">
+        Please use your name and repair reference as the payment reference. Once you've sent the
+        transfer, tick the confirmation box on the approval page to complete your approval.
+      </p>
+    </div>
+  `;
+}
+
+/**
+ * Standard reminder appended to drop-off and ready-for-collection emails,
+ * to discourage instruments being left uncollected indefinitely.
+ */
+function storageWarningHtml() {
+  return `
+    <p style="margin-top:16px;font-size:13px;color:#64748b;">
+      Please note: instruments not collected within a reasonable time may be moved from our
+      workshop to offsite storage, which will take longer to retrieve. If an instrument remains
+      uncollected with outstanding costs unpaid for an extended period, we reserve the right to
+      sell it to recover those costs.
+    </p>
+  `;
+}
+
 /** Renders a quote's line items as an HTML list, when there are any. */
 function lineItemsHtml(lineItems?: LineItemInput[]) {
   if (!lineItems || lineItems.length === 0) return "";
@@ -198,6 +243,8 @@ export async function sendApprovalEmail(
     lineItems?: LineItemInput[];
     /** Staff's internal "discussed verbally" notes — shown to the customer too, under Additional notes. */
     internalNotes?: string | null;
+    /** Payment required before work starts, if any — shown with bank transfer details. */
+    paymentRequired?: { type: "none" | "deposit" | "full"; amount: number } | null;
   }
 ): Promise<SoftResult> {
   const { appBaseUrl } = getConfig();
@@ -220,12 +267,20 @@ export async function sendApprovalEmail(
     additionalNotes.length > 0
       ? `<p><strong>Additional notes:</strong></p>${additionalNotes.map((n) => `<p>${n}</p>`).join("")}`
       : "";
+  const paymentBlock =
+    params.paymentRequired && params.paymentRequired.type !== "none"
+      ? bankDetailsHtml(
+          params.paymentRequired.amount,
+          params.paymentRequired.type === "deposit" ? "Deposit due before we start work" : "Full payment due before we start work"
+        )
+      : "";
   const html = `
     <p>Hi ${escapeHtml(params.customerName)},</p>
     <p>Your repair <strong>${escapeHtml(params.repairNumber)}</strong> has a quote ready for approval:</p>
     ${workBlock}
     ${notesBlock}
     <p><strong>Total:</strong> £${params.total.toFixed(2)}</p>
+    ${paymentBlock}
     <p><a href="${link}">Review and respond to this quote</a></p>
     <p>This link will expire in 14 days.</p>
     ${signatureHtml()}
@@ -254,6 +309,7 @@ export async function sendConfirmationEmail(
     <p>We've received your instrument for repair <strong>${escapeHtml(params.repairNumber)}</strong>.</p>
     <p><strong>Work agreed:</strong> ${escapeHtml(params.workDescription || "-")}</p>
     <p>We'll be in touch with updates. Thanks for choosing us!</p>
+    ${storageWarningHtml()}
     ${signatureHtml()}
   `;
   return sendEmail(db, {
@@ -278,6 +334,7 @@ export async function sendReadyEmail(
     <p>Hi ${escapeHtml(params.customerName)},</p>
     <p>Good news — your repair <strong>${escapeHtml(params.repairNumber)}</strong> is ready for collection!</p>
     <p>Payment can be made by cash or card when you collect your instrument.</p>
+    ${storageWarningHtml()}
     ${signatureHtml()}
   `;
   return sendEmail(db, {

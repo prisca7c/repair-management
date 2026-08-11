@@ -91,6 +91,16 @@ export async function POST(
       token,
       lineItems: versionItems ?? [],
       internalNotes: repair.notes,
+      paymentRequired:
+        repair.payment_required_type && repair.payment_required_type !== "none"
+          ? {
+              type: repair.payment_required_type,
+              amount:
+                repair.payment_required_type === "deposit"
+                  ? repair.deposit_amount ?? 0
+                  : latestVersion.total ?? repair.quote_total ?? 0,
+            }
+          : null,
     });
     warning = result.warning ?? null;
   } else {

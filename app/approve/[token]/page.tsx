@@ -19,6 +19,14 @@ interface ApprovalView {
   customerMessage: string | null;
   expired: boolean;
   expiresAt: string;
+  paymentRequired: { type: "deposit" | "full"; amount: number } | null;
+  paymentConfirmed: boolean;
+  bankDetails: {
+    accountName: string;
+    bankName: string;
+    sortCode: string;
+    accountNumber: string;
+  };
 }
 
 export default function ApprovePage({
@@ -35,6 +43,7 @@ export default function ApprovePage({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [agree, setAgree] = useState(false);
+  const [paymentSent, setPaymentSent] = useState(false);
   const [submitting, setSubmitting] = useState<"approved" | "declined" | "undo" | null>(null);
 
   useEffect(() => {
@@ -57,7 +66,7 @@ export default function ApprovePage({
       const res = await fetch(`/api/approve/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response, message: message || undefined }),
+        body: JSON.stringify({ response, message: message || undefined, paymentConfirmed: paymentSent }),
       });
       const json = await res.json();
       if (json.view) setView(json.view);
@@ -124,8 +133,10 @@ export default function ApprovePage({
                   You have already <strong>{view.response}</strong> this quote.
                   {view.response === "approved" && (
                     <p className="mt-1 text-slate-600">
-                      Thanks — the shop has been notified and will get started. Payment can be made by
-                      cash or card, either now or when you collect your instrument.
+                      Thanks — the shop has been notified and will get started.
+                      {view.paymentRequired
+                        ? " We'll be checking for your bank transfer before starting work."
+                        : " Payment can be made by cash or card, either now or when you collect your instrument."}
                     </p>
                   )}
                   {view.response === "declined" && (
@@ -151,7 +162,9 @@ export default function ApprovePage({
                 <p className="text-xs text-slate-500">
                   By approving, you agree to the work and total shown above, and that the shop is
                   not responsible for any pre-existing damage or issues not related to this repair.
-                  Payment is due by cash or card, either now or when you collect your instrument.
+                  {view.paymentRequired
+                    ? " Any remaining balance is due by cash or card when you collect your instrument."
+                    : " Payment is due by cash or card, either now or when you collect your instrument."}
                 </p>
                 <label className="flex items-start gap-2 text-xs text-slate-600">
                   <input
@@ -162,6 +175,36 @@ export default function ApprovePage({
                   />
                   I have read and agree to the above.
                 </label>
+
+                {view.paymentRequired && (
+                  <div className="rounded-md border border-slate-300 bg-slate-50 p-3 text-xs text-slate-700">
+                    <p className="mb-1 font-semibold text-slate-800">
+                      {view.paymentRequired.type === "deposit" ? "Deposit due before we start work" : "Full payment due before we start work"}
+                      : £{view.paymentRequired.amount.toFixed(2)}
+                    </p>
+                    <p className="mb-2">Please pay by bank transfer to:</p>
+                    <p className="mb-2 leading-relaxed">
+                      {view.bankDetails.accountName}
+                      <br />
+                      {view.bankDetails.bankName}
+                      <br />
+                      Sort code: {view.bankDetails.sortCode}
+                      <br />
+                      Account no.: {view.bankDetails.accountNumber}
+                    </p>
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={paymentSent}
+                        onChange={(e) => setPaymentSent(e.target.checked)}
+                      />
+                      I have sent the {view.paymentRequired.type === "deposit" ? "deposit" : "full payment"} by bank
+                      transfer.
+                    </label>
+                  </div>
+                )}
+
                 <textarea
                   className="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm"
                   rows={2}
@@ -172,7 +215,7 @@ export default function ApprovePage({
                 <div className="flex gap-2">
                   <button
                     onClick={() => respond("approved")}
-                    disabled={!!submitting || !agree}
+                    disabled={!!submitting || !agree || (!!view.paymentRequired && !paymentSent)}
                     className="inline-flex flex-1 items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
                   >
                     {submitting === "approved" ? "Approving…" : `Yes, approve £${view.total.toFixed(2)}`}
@@ -187,6 +230,11 @@ export default function ApprovePage({
                 </div>
                 {!agree && (
                   <p className="text-xs text-slate-400">Check the box above to enable approval.</p>
+                )}
+                {agree && view.paymentRequired && !paymentSent && (
+                  <p className="text-xs text-slate-400">
+                    Confirm you&apos;ve sent the {view.paymentRequired.type === "deposit" ? "deposit" : "full payment"} to enable approval.
+                  </p>
                 )}
               </div>
             )}

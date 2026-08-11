@@ -32,6 +32,8 @@ export default function EditForm({
   );
   const [technicianRequired, setTechnicianRequired] = useState(repair.technician_required);
   const [technicianPay, setTechnicianPay] = useState(String(repair.technician_pay ?? ""));
+  const [paymentRequiredType, setPaymentRequiredType] = useState(repair.payment_required_type);
+  const [depositAmount, setDepositAmount] = useState(String(repair.deposit_amount ?? ""));
 
   const [warning, setWarning] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -94,6 +96,8 @@ export default function EditForm({
           technician_required: technicianRequired,
           technician_id: null,
           technician_pay: technicianRequired ? Number(technicianPay || 0) : null,
+          payment_required_type: paymentRequiredType,
+          deposit_amount: paymentRequiredType === "deposit" ? Number(depositAmount || 0) : null,
         }),
       });
       if (!patchRes.ok) {
@@ -251,6 +255,49 @@ export default function EditForm({
             placeholder="Technician pay (£)"
             value={technicianPay}
             onChange={(e) => setTechnicianPay(e.target.value)}
+          />
+        )}
+      </section>
+
+      <section className="card space-y-2">
+        <h2 className="text-sm font-semibold text-slate-800">Payment before work starts</h2>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="edit_payment_required_type"
+              checked={paymentRequiredType === "none"}
+              onChange={() => setPaymentRequiredType("none")}
+            />
+            Not required upfront
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="edit_payment_required_type"
+              checked={paymentRequiredType === "deposit"}
+              onChange={() => setPaymentRequiredType("deposit")}
+            />
+            Deposit
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="edit_payment_required_type"
+              checked={paymentRequiredType === "full"}
+              onChange={() => setPaymentRequiredType("full")}
+            />
+            Full payment
+          </label>
+        </div>
+        {paymentRequiredType === "deposit" && (
+          <input
+            type="number"
+            step="0.01"
+            className="input max-w-[200px]"
+            placeholder="Deposit amount (£)"
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
           />
         )}
       </section>

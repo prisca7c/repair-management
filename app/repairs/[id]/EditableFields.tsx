@@ -23,6 +23,8 @@ export default function EditableFields({
   const [locationText, setLocationText] = useState(repair.location_text ?? "");
   const [jobDone, setJobDone] = useState(repair.job_done);
   const [customerPaid, setCustomerPaid] = useState(repair.customer_paid);
+  const [paymentRequiredType, setPaymentRequiredType] = useState(repair.payment_required_type);
+  const [depositAmount, setDepositAmount] = useState(String(repair.deposit_amount ?? ""));
 
   // Action buttons elsewhere on the page (Ready for collection, Paid &
   // Collected, etc.) update the repair via a different route, then call
@@ -36,6 +38,8 @@ export default function EditableFields({
     setLocationText(repair.location_text ?? "");
     setJobDone(repair.job_done);
     setCustomerPaid(repair.customer_paid);
+    setPaymentRequiredType(repair.payment_required_type);
+    setDepositAmount(String(repair.deposit_amount ?? ""));
   }, [repair]);
 
   async function patch(fields: Record<string, unknown>) {
@@ -145,6 +149,44 @@ export default function EditableFields({
             onChange={(e) => setLocationText(e.target.value)}
             onBlur={() => patch({ location_type: locationType, location_text: locationText })}
           />
+        </div>
+      </div>
+
+      <div className="border-t border-slate-100 pt-3">
+        <label className="label flex items-center">
+          Payment before work starts{" "}
+          <InfoIcon text="If set to deposit or full payment, the approval email includes bank transfer details and the customer must confirm they've paid before they can approve the quote." />
+        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input max-w-[220px]"
+            value={paymentRequiredType}
+            disabled={busy}
+            onChange={(e) => {
+              const v = e.target.value as Repair["payment_required_type"];
+              setPaymentRequiredType(v);
+              patch({
+                payment_required_type: v,
+                deposit_amount: v === "deposit" ? Number(depositAmount || 0) : null,
+              });
+            }}
+          >
+            <option value="none">Not required upfront</option>
+            <option value="deposit">Deposit</option>
+            <option value="full">Full payment</option>
+          </select>
+          {paymentRequiredType === "deposit" && (
+            <input
+              type="number"
+              step="0.01"
+              className="input max-w-[160px]"
+              placeholder="Deposit amount (£)"
+              value={depositAmount}
+              disabled={busy}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              onBlur={() => patch({ payment_required_type: "deposit", deposit_amount: Number(depositAmount || 0) })}
+            />
+          )}
         </div>
       </div>
 

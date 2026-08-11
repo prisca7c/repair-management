@@ -8,6 +8,7 @@ export type WaitingReason = "customer" | "parts" | "technician" | "other";
 export type LocationType = "repair_room" | "home_staff" | "home_technician" | "other";
 export type ApprovalResponse = "pending" | "approved" | "declined";
 export type PaymentMethod = "cash" | "card";
+export type PaymentRequiredType = "none" | "deposit" | "full";
 
 export interface AppUser {
   id: string;
@@ -75,6 +76,8 @@ export interface Repair {
   customer_paid: boolean;
   verbally_discussed: boolean;
   notes: string | null;
+  payment_required_type: PaymentRequiredType;
+  deposit_amount: number | null;
   received_at: string;
   ready_at: string | null;
   collected_at: string | null;

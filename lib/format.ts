@@ -92,6 +92,12 @@ export const DASHBOARD_STATUS_COLORS: Record<string, string> = {
   ...STATUS_COLORS,
 };
 
+export const PAYMENT_REQUIRED_LABELS: Record<string, string> = {
+  none: "Not required upfront",
+  deposit: "Deposit required",
+  full: "Full payment required",
+};
+
 export const LOCATION_LABELS: Record<string, string> = {
   repair_room: "Repair room",
   home_staff: "Home (staff)",

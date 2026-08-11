@@ -17,7 +17,7 @@ async function loadApprovalByToken(token: string) {
   const { data: approval } = await admin
     .from("quote_approvals")
     .select(
-      "*, quote_versions(*, quote_version_items(*)), repairs(id, repair_number, instrument_type, instrument_description, brand, model, work_description, quote_total)"
+      "*, quote_versions(*, quote_version_items(*)), repairs(id, repair_number, instrument_type, instrument_description, brand, model, work_description, quote_total, payment_required_type, deposit_amount)"
     )
     .eq("token_hash", tokenHash)
     .maybeSingle();
@@ -34,6 +34,8 @@ function publicView(approval: NonNullable<Awaited<ReturnType<typeof loadApproval
     model: string | null;
     work_description: string | null;
     quote_total: number;
+    payment_required_type: "none" | "deposit" | "full";
+    deposit_amount: number | null;
   } | null;
   const quoteVersion = approval.quote_versions as {
     work_description: string | null;
@@ -43,17 +45,33 @@ function publicView(approval: NonNullable<Awaited<ReturnType<typeof loadApproval
   } | null;
 
   const expired = new Date(approval.token_expires_at).getTime() < Date.now();
+  const total = quoteVersion?.total ?? repair?.quote_total ?? 0;
+  const paymentRequiredType = repair?.payment_required_type ?? "none";
 
   return {
     repairNumber: repair?.repair_number ?? "",
     instrument: [repair?.brand, repair?.model, repair?.instrument_description].filter(Boolean).join(" ") || repair?.instrument_type,
     workDescription: quoteVersion?.work_description ?? repair?.work_description ?? "",
-    total: quoteVersion?.total ?? repair?.quote_total ?? 0,
+    total,
     lineItems: quoteVersion?.quote_version_items ?? [],
     response: approval.response as "pending" | "approved" | "declined",
     customerMessage: approval.customer_message,
     expired,
     expiresAt: approval.token_expires_at,
+    paymentRequired:
+      paymentRequiredType === "none"
+        ? null
+        : {
+            type: paymentRequiredType,
+            amount: paymentRequiredType === "deposit" ? repair?.deposit_amount ?? 0 : total,
+          },
+    paymentConfirmed: Boolean(approval.payment_confirmed),
+    bankDetails: {
+      accountName: "Music & Life Ltd",
+      bankName: "Starling Bank",
+      sortCode: "60-83-71",
+      accountNumber: "8509-9687",
+    },
   };
 }
 
@@ -79,6 +97,7 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const response = body.response as "approved" | "declined" | "undo" | undefined;
   const message = (body.message as string | undefined)?.slice(0, 2000) ?? null;
+  const paymentConfirmed = Boolean(body.paymentConfirmed);
 
   if (response !== "approved" && response !== "declined" && response !== "undo") {
     return NextResponse.json({ error: "Invalid response" }, { status: 400 });
@@ -131,6 +150,17 @@ export async function POST(
     return NextResponse.json({ view: publicView(approval), alreadyResponded: true });
   }
 
+  // If this repair requires a deposit/full payment before work starts, the
+  // customer must confirm they've sent the bank transfer before they can
+  // approve — declining never requires this.
+  const repairForPayment = approval.repairs as { payment_required_type?: "none" | "deposit" | "full" } | null;
+  if (response === "approved" && repairForPayment?.payment_required_type && repairForPayment.payment_required_type !== "none" && !paymentConfirmed) {
+    return NextResponse.json(
+      { error: "Please confirm you've sent the bank transfer before approving.", view: publicView(approval) },
+      { status: 400 }
+    );
+  }
+
   const respondedAt = new Date().toISOString();
 
   const { data: updatedApproval, error } = await admin
@@ -139,6 +169,9 @@ export async function POST(
       response,
       responded_at: respondedAt,
       customer_message: message,
+      ...(response === "approved" && paymentConfirmed
+        ? { payment_confirmed: true, payment_confirmed_at: respondedAt }
+        : {}),
     })
     .eq("id", approval.id)
     .eq("response", "pending") // extra guard against a race double-submit

@@ -255,6 +255,12 @@ export default async function RepairDetailPage({
               <ChecklistRow label="Technician paid" value={repair.technician_paid} />
             )}
             <ChecklistRow label="Discussed verbally" value={repair.verbally_discussed} />
+            {repair.payment_required_type !== "none" && (
+              <ChecklistRow
+                label={`${repair.payment_required_type === "deposit" ? "Deposit" : "Full payment"} confirmed by customer`}
+                value={Boolean(latestApproval?.payment_confirmed)}
+              />
+            )}
           </section>
 
           <section className="card space-y-2">
