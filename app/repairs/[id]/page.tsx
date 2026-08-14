@@ -11,6 +11,7 @@ import {
   APPROVAL_LABELS,
   APPROVAL_COLORS,
   LOCATION_LABELS,
+  describeAudit,
 } from "@/lib/format";
 import RepairActions from "./RepairActions";
 import EditableFields from "./EditableFields";
@@ -273,11 +274,12 @@ export default async function RepairDetailPage({
             <ul className="max-h-72 space-y-1.5 overflow-y-auto text-xs text-slate-500">
               {(auditLog ?? []).map((a) => (
                 <li key={a.id} className="border-b border-slate-100 pb-1.5">
-                  <span className="font-medium text-slate-700">{a.action.replace(/_/g, " ")}</span>
-                  {" · "}
-                  {a.actor_name ?? "System"}
-                  {" · "}
-                  {formatDateTime(a.created_at)}
+                  <div className="font-medium text-slate-700">{describeAudit(a)}</div>
+                  <div>
+                    {a.actor_name ?? "System"}
+                    {" · "}
+                    {formatDateTime(a.created_at)}
+                  </div>
                 </li>
               ))}
               {(!auditLog || auditLog.length === 0) && <li>No history yet.</li>}

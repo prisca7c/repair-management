@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/currentUser";
+import { generateApprovalToken } from "@/lib/tokens";
+import { sendApprovalEmail } from "@/lib/sender";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +15,14 @@ interface LineItem {
 /**
  * Creates a new immutable quote_version. Prior versions (and their
  * quote_approvals rows) are never modified — this only ever inserts.
- * If the repair's quote_total/work_description differ from the current
- * live values, those are updated too so the repair reflects the latest
- * quote, but the approval status resets to "requires a new approval"
- * simply because no quote_approvals row exists yet for this new version.
+ * The repair's quote_total/work_description are updated to match so the
+ * repair reflects the latest quote.
+ *
+ * A revised quote always needs a fresh customer approval, so this
+ * immediately creates a new (pending) quote_approvals row and sends the
+ * approval email for it automatically — the customer is notified of every
+ * quote change without staff having to separately click "Resend approval".
+ * This mirrors exactly what happens when the first quote (v1) is sent.
  */
 export async function POST(
   req: NextRequest,
@@ -70,7 +76,7 @@ export async function POST(
     );
   }
 
-  const { data: before } = await supabase.from("repairs").select("*").eq("id", id).single();
+  const { data: before } = await supabase.from("repairs").select("*, customers(*)").eq("id", id).single();
 
   await supabase
     .from("repairs")
@@ -101,5 +107,58 @@ export async function POST(
     to_value: quoteVersion,
   });
 
-  return NextResponse.json({ quoteVersion });
+  // A revised quote always needs a fresh approval — automatically create a
+  // pending quote_approvals row for this new version and email the
+  // customer, exactly like the first quote sent at creation. Without this,
+  // the quote history would show v1 with a proper awaiting/approved pill
+  // but every revised version stuck with no approval row at all, and the
+  // customer would never be told the quote changed unless staff remembered
+  // to separately hit "Resend approval".
+  let warning: string | null = null;
+  const customer = before?.customers as { email: string | null; first_name: string; last_name: string } | null;
+
+  if (customer?.email) {
+    const { token, tokenHash, expiresAt } = generateApprovalToken();
+    await supabase.from("quote_approvals").insert({
+      quote_version_id: quoteVersion.id,
+      repair_id: id,
+      token_hash: tokenHash,
+      token_expires_at: expiresAt,
+      response: "pending",
+    });
+    await supabase.from("quote_versions").update({ sent_at: new Date().toISOString() }).eq("id", quoteVersion.id);
+
+    const paymentRequiredType = before?.payment_required_type as "none" | "deposit" | "full" | undefined;
+    const result = await sendApprovalEmail(supabase, {
+      repairId: id,
+      repairNumber: before!.repair_number,
+      customerEmail: customer.email,
+      customerName: `${customer.first_name} ${customer.last_name}`,
+      workDescription: work_description || "",
+      total,
+      token,
+      lineItems: line_items ?? [],
+      internalNotes: before?.notes,
+      paymentRequired:
+        paymentRequiredType && paymentRequiredType !== "none"
+          ? {
+              type: paymentRequiredType,
+              amount: paymentRequiredType === "deposit" ? before?.deposit_amount ?? 0 : total,
+            }
+          : null,
+    });
+    warning = result.warning ?? null;
+
+    await supabase.from("audit_log").insert({
+      repair_id: id,
+      actor_id: appUser?.id ?? null,
+      actor_name: appUser?.name ?? null,
+      action: "approval_sent",
+      to_value: { quote_version_id: quoteVersion.id },
+    });
+  } else {
+    warning = "Customer has no email on file — the revised quote was saved but no approval email was sent.";
+  }
+
+  return NextResponse.json({ quoteVersion, warning });
 }

@@ -106,6 +106,9 @@ export default function EditForm({
       }
 
       // Quote fields — only create a new quote version if they changed.
+      // The quote route auto-creates a fresh approval and emails the
+      // customer about the change, same as the very first quote — nothing
+      // else to trigger here.
       if (quoteChanged) {
         const quoteRes = await fetch(`/api/repairs/${repair.id}/quote`, {
           method: "POST",
@@ -116,10 +119,18 @@ export default function EditForm({
             line_items: lineItems.length > 0 ? lineItems : undefined,
           }),
         });
+        const quoteJson = await quoteRes.json();
         if (!quoteRes.ok) {
-          const json = await quoteRes.json();
-          setWarning(json.error || "Could not save the new quote.");
+          setWarning(quoteJson.error || "Could not save the new quote.");
           setBusy(false);
+          return;
+        }
+        if (quoteJson.warning) {
+          // Let staff see the email-delivery warning before navigating away.
+          setWarning(quoteJson.warning);
+          setTimeout(() => {
+            window.location.href = `/repairs/${repair.id}`;
+          }, 5000);
           return;
         }
       }
@@ -137,10 +148,11 @@ export default function EditForm({
     <div className="space-y-5">
       <Warning text={warning} />
 
-      {isApproved && quoteChanged && (
+      {quoteChanged && (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          This changes a previously approved quote — saving will create a new quote version and reset approval
-          to awaiting. You&apos;ll be able to send a revised approval from the repair page.
+          {isApproved
+            ? "This changes a previously approved quote — saving will create a new quote version, reset approval to awaiting, and automatically email the customer the revised quote for approval."
+            : "Saving will create a new quote version and automatically email the customer the revised quote for approval."}
         </div>
       )}
 

@@ -104,3 +104,139 @@ export const LOCATION_LABELS: Record<string, string> = {
   home_technician: "Home (technician)",
   other: "Other",
 };
+
+// ----------------------------------------------------------------------------
+// Audit log descriptions — turns the raw action name + from_value/to_value
+// jsonb blobs stored by every route into a specific, human-readable summary
+// (e.g. "Status: Received → Working; Location: Repair room → Home (staff)")
+// instead of just showing the generic action name like "field update".
+// ----------------------------------------------------------------------------
+
+const AUDIT_FIELD_LABELS: Record<string, string> = {
+  instrument_type: "Instrument type",
+  instrument_description: "Instrument description",
+  brand: "Brand",
+  model: "Model",
+  serial_number: "Serial number",
+  photo_url: "Photo",
+  work_description: "Work description",
+  quote_total: "Quote total",
+  status: "Status",
+  waiting_reason: "Waiting reason",
+  location_type: "Location",
+  location_text: "Location details",
+  technician_required: "Technician required",
+  technician_pay: "Technician pay",
+  technician_paid: "Technician paid",
+  technician_paid_at: "Technician paid at",
+  job_done: "Job done",
+  customer_paid: "Customer paid",
+  verbally_discussed: "Discussed verbally",
+  notes: "Notes",
+  payment_required_type: "Payment required",
+  deposit_amount: "Deposit amount",
+  received_at: "Received at",
+  ready_at: "Ready at",
+  collected_at: "Collected at",
+  archived_at: "Archived at",
+  response: "Response",
+  cancelled_by_staff: "Cancelled by staff",
+  cancellation_reason: "Cancellation reason",
+  cancelled_at: "Cancelled at",
+  customer_message: "Customer message",
+  payment_confirmed: "Payment confirmed",
+  payment_confirmed_at: "Payment confirmed at",
+};
+
+const AUDIT_MONEY_FIELDS = new Set(["technician_pay", "deposit_amount", "quote_total", "total"]);
+const AUDIT_DATE_FIELDS = new Set([
+  "received_at",
+  "ready_at",
+  "collected_at",
+  "archived_at",
+  "technician_paid_at",
+  "cancelled_at",
+  "payment_confirmed_at",
+  "responded_at",
+]);
+
+function formatAuditValue(key: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (key === "status") return STATUS_LABELS[String(value)] ?? String(value);
+  if (key === "location_type") return LOCATION_LABELS[String(value)] ?? String(value);
+  if (key === "payment_required_type") return PAYMENT_REQUIRED_LABELS[String(value)] ?? String(value);
+  if (key === "response") return APPROVAL_LABELS[String(value)] ?? String(value);
+  if (AUDIT_MONEY_FIELDS.has(key)) return formatMoney(Number(value));
+  if (AUDIT_DATE_FIELDS.has(key)) return formatDateTime(String(value));
+  return String(value);
+}
+
+/**
+ * Diffs two flat objects field-by-field into "Label: before → after"
+ * strings, skipping keys that didn't actually change, plus ids and
+ * nested/object values that aren't meant to be shown to staff directly.
+ */
+function diffFields(from: Record<string, unknown> | null, to: Record<string, unknown> | null): string[] {
+  const keys = new Set([...Object.keys(from ?? {}), ...Object.keys(to ?? {})]);
+  const changes: string[] = [];
+  for (const key of keys) {
+    if (key === "id" || key === "created_at" || key === "updated_at" || key.endsWith("_id")) continue;
+    const fromRaw = from?.[key];
+    const toRaw = to?.[key];
+    if (typeof fromRaw === "object" && fromRaw !== null) continue;
+    if (typeof toRaw === "object" && toRaw !== null) continue;
+    const fromVal = formatAuditValue(key, fromRaw);
+    const toVal = formatAuditValue(key, toRaw);
+    if (fromVal !== toVal) {
+      changes.push(`${AUDIT_FIELD_LABELS[key] ?? key.replace(/_/g, " ")}: ${fromVal} → ${toVal}`);
+    }
+  }
+  return changes;
+}
+
+export function describeAudit(entry: { action: string; from_value: unknown; to_value: unknown }): string {
+  const { action } = entry;
+  const from = (entry.from_value ?? null) as Record<string, unknown> | null;
+  const to = (entry.to_value ?? null) as Record<string, unknown> | null;
+
+  switch (action) {
+    case "repair_created":
+      return "Repair created";
+    case "approval_sent":
+      return "Approval email sent to customer";
+    case "quote_revised": {
+      const total = to?.total;
+      const version = to?.version_number;
+      return `Quote revised${version ? ` (v${version})` : ""}${
+        typeof total === "number" ? ` — new total ${formatMoney(total)}` : ""
+      }, approval email sent`;
+    }
+    case "customer_approved":
+      return `Customer approved the quote${to?.message ? ` — "${to.message}"` : ""}`;
+    case "customer_declined":
+      return `Customer declined the quote${to?.message ? ` — "${to.message}"` : ""}`;
+    case "customer_undo_response":
+      return "Customer undid their approval response";
+    case "quote_approval_cancelled":
+      return `Staff cancelled the approval${to?.reason ? ` — "${to.reason}"` : ""}`;
+    case "undo_quote_approval_cancelled":
+      return "Approval cancellation undone";
+    default: {
+      const changes = diffFields(from, to);
+      if (changes.length > 0) return changes.join("; ");
+      const fallback: Record<string, string> = {
+        collect: "Marked collected",
+        undo_collect: "Collection undone",
+        archive: "Repair archived",
+        undo_archive: "Archive undone",
+        restore: "Repair restored from archive",
+        technician_paid: "Technician marked as paid",
+        undo_technician_paid: "Technician payment undone",
+        field_update: "Repair updated",
+        undo_field_update: "Change undone",
+      };
+      return fallback[action] ?? action.replace(/_/g, " ");
+    }
+  }
+}
