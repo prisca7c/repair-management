@@ -3,6 +3,7 @@
 import { useState } from "react";
 import UndoToast from "@/components/UndoToast";
 import Warning from "@/components/Warning";
+import { STATUS_LABELS } from "@/lib/format";
 import type { Repair, QuoteApproval } from "@/lib/database.types";
 
 interface Props {
@@ -20,12 +21,12 @@ export default function RepairActions({ repair, latestApproval }: Props) {
   const [updateMessage, setUpdateMessage] = useState("");
   const [showUpdateForm, setShowUpdateForm] = useState(false);
 
-  async function call(url: string, body?: unknown, successMessage?: string) {
+  async function call(url: string, body?: unknown, successMessage?: string, method: "POST" | "PATCH" = "POST") {
     setBusy(url);
     setWarning(null);
     try {
       const res = await fetch(url, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
         body: body ? JSON.stringify(body) : undefined,
       });
@@ -57,6 +58,14 @@ export default function RepairActions({ repair, latestApproval }: Props) {
 
   const canCancelApproval = latestApproval?.response === "approved" && !latestApproval.cancelled_by_staff;
 
+  // Status changes live only here now (not as a dropdown under Repair
+  // details) so there's exactly one way to move a repair from Received to
+  // Working to Ready — and so "Ready" always goes through send-ready,
+  // which is the only path that emails the customer. Collected is handled
+  // by the dedicated Paid & Collected / Collected — not paid yet buttons
+  // below, since that transition also needs a payment decision.
+  const forwardStatuses = (["received", "working", "ready"] as const).filter((s) => s !== repair.status);
+
   return (
     <div className="card space-y-2">
       <Warning text={warning} />
@@ -73,9 +82,35 @@ export default function RepairActions({ repair, latestApproval }: Props) {
         <button className="btn-secondary" disabled={!!busy} onClick={() => setShowUpdateForm((v) => !v)}>
           Send update
         </button>
-        {repair.status !== "ready" && repair.status !== "collected" && (
-          <button className="btn-secondary" disabled={!!busy} onClick={() => call(`/api/repairs/${repair.id}/send-ready`)}>
-            Ready for collection
+        {repair.status !== "collected" &&
+          forwardStatuses.map((s) =>
+            s === "ready" ? (
+              <button
+                key={s}
+                className="btn-secondary"
+                disabled={!!busy}
+                onClick={() => call(`/api/repairs/${repair.id}/send-ready`)}
+              >
+                Ready for collection
+              </button>
+            ) : (
+              <button
+                key={s}
+                className="btn-secondary"
+                disabled={!!busy}
+                onClick={() => call(`/api/repairs/${repair.id}`, { status: s }, undefined, "PATCH")}
+              >
+                Mark {STATUS_LABELS[s]}
+              </button>
+            )
+          )}
+        {repair.status === "collected" && !repair.customer_paid && (
+          <button
+            className="btn-secondary"
+            disabled={!!busy}
+            onClick={() => call(`/api/repairs/${repair.id}`, { customer_paid: true }, "Marked as paid.", "PATCH")}
+          >
+            Mark paid
           </button>
         )}
         {repair.status !== "collected" && (

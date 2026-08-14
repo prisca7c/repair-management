@@ -18,11 +18,8 @@ export default function EditableFields({
   const [warning, setWarning] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; undoUrl: string } | null>(null);
 
-  const [status, setStatus] = useState(repair.status);
   const [locationType, setLocationType] = useState(repair.location_type);
   const [locationText, setLocationText] = useState(repair.location_text ?? "");
-  const [jobDone, setJobDone] = useState(repair.job_done);
-  const [customerPaid, setCustomerPaid] = useState(repair.customer_paid);
   const [paymentRequiredType, setPaymentRequiredType] = useState(repair.payment_required_type);
   const [depositAmount, setDepositAmount] = useState(String(repair.deposit_amount ?? ""));
 
@@ -33,11 +30,8 @@ export default function EditableFields({
   // were on first mount — the page LOOKED like it needed a manual reload
   // to catch up, even though the underlying data was already current.
   useEffect(() => {
-    setStatus(repair.status);
     setLocationType(repair.location_type);
     setLocationText(repair.location_text ?? "");
-    setJobDone(repair.job_done);
-    setCustomerPaid(repair.customer_paid);
     setPaymentRequiredType(repair.payment_required_type);
     setDepositAmount(String(repair.deposit_amount ?? ""));
   }, [repair]);
@@ -102,24 +96,6 @@ export default function EditableFields({
       </dl>
 
       <div className="grid grid-cols-1 gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2">
-        <div>
-          <label className="label">Status</label>
-          <select
-            className="input"
-            value={status}
-            disabled={busy}
-            onChange={(e) => {
-              const v = e.target.value as Repair["status"];
-              setStatus(v);
-              patch({ status: v });
-            }}
-          >
-            <option value="received">Received</option>
-            <option value="working">Working</option>
-            <option value="ready">Ready</option>
-            <option value="collected">Collected</option>
-          </select>
-        </div>
         <div>
           <label className="label flex items-center">
             Location <InfoIcon text="Where the instrument physically is right now." />
@@ -188,33 +164,6 @@ export default function EditableFields({
             />
           )}
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-4 border-t border-slate-100 pt-3">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={jobDone}
-            disabled={busy}
-            onChange={(e) => {
-              setJobDone(e.target.checked);
-              patch({ job_done: e.target.checked });
-            }}
-          />
-          Job done
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={customerPaid}
-            disabled={busy}
-            onChange={(e) => {
-              setCustomerPaid(e.target.checked);
-              patch({ customer_paid: e.target.checked });
-            }}
-          />
-          Customer paid
-        </label>
       </div>
 
       {toast && <UndoToast message={toast.message} undoUrl={toast.undoUrl} onDone={() => setToast(null)} />}
